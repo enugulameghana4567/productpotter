@@ -1,0 +1,480 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-toastify';
+import API from '../utils/api';
+
+const inp = {
+  width: '100%', padding: '11px 14px', border: '1.5px solid #dbeafe', borderRadius: 8,
+  fontSize: 14, fontFamily: "'Lato',sans-serif", outline: 'none', background: '#f8faff',
+  marginTop: 4, boxSizing: 'border-box', color: '#1f2937'
+};
+const cardStyle = {
+  background: '#fff', borderRadius: 16, padding: '28px',
+  border: '1.5px solid #dbeafe', boxShadow: '0 2px 16px rgba(26,86,219,0.06)'
+};
+const IMG_BASE = process.env.REACT_APP_API_URL || '';
+const EMPTY_PRODUCT = { name: '', description: '', bibleVerse: '', inspirationalSentence: '', colorDescription: '', designDescription: '', themeDescription: '', isVisible: true };
+const EMPTY_MAT = { name: '', description: '', price: '', color: '#8B5E3C' };
+
+export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('products');
+  const [products, setProducts] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [aboutText, setAboutText] = useState('');
+  const [contactInfo, setContactInfo] = useState({ phone: '', email: '', whatsapp: '', instagram: '', address: '' });
+
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
+  const [productFile, setProductFile] = useState(null);
+  const [productPreview, setProductPreview] = useState(null);
+  const fileRef = useRef();
+
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [matForm, setMatForm] = useState(EMPTY_MAT);
+
+  const fetchAll = () => {
+    API.get('/products/all').then(r => setProducts(r.data)).catch(() => {});
+    API.get('/materials/all').then(r => setMaterials(r.data)).catch(() => {
+      API.get('/materials').then(r => setMaterials(r.data)).catch(() => {});
+    });
+    API.get('/orders').then(r => setOrders(r.data)).catch(() => {});
+    API.get('/feedback/all').then(r => setFeedbacks(r.data)).catch(() => {});
+    API.get('/settings/about').then(r => setAboutText(r.data?.value || '')).catch(() => {});
+    API.get('/settings/contact').then(r => setContactInfo(r.data?.value || { phone: '', email: '', whatsapp: '', instagram: '', address: '' })).catch(() => {});
+  };
+
+  useEffect(() => { fetchAll(); }, []);
+
+  const getImg = p => {
+    if (!p?.image) return '';
+    if (p.image.startsWith('/images/')) return p.image;
+    if (p.image.startsWith('http')) return p.image;
+    return `${IMG_BASE}/uploads/${p.image}`;
+  };
+
+  const tabs = [
+    { id: 'products', label: '📦 Products' },
+    { id: 'materials', label: '🔵 Materials' },
+    { id: 'orders', label: '📋 Orders' },
+    { id: 'feedback', label: '💬 Feedback' },
+    { id: 'about', label: '📄 About Us' },
+    { id: 'contact', label: '📞 Contact' }
+  ];
+
+  // ── Product handlers ──
+  const openAdd = () => { setEditingProduct(null); setProductForm(EMPTY_PRODUCT); setProductFile(null); setProductPreview(null); setShowProductForm(true); };
+  const openEdit = p => { setEditingProduct(p); setProductForm({ name: p.name || '', description: p.description || '', bibleVerse: p.bibleVerse || '', inspirationalSentence: p.inspirationalSentence || '', colorDescription: p.colorDescription || '', designDescription: p.designDescription || '', themeDescription: p.themeDescription || '', isVisible: p.isVisible !== false }); setProductFile(null); setProductPreview(getImg(p)); setShowProductForm(true); };
+  const cancelProductForm = () => { setShowProductForm(false); setEditingProduct(null); setProductForm(EMPTY_PRODUCT); setProductFile(null); setProductPreview(null); };
+
+  const handleFileChange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setProductFile(file);
+    setProductPreview(URL.createObjectURL(file));
+  };
+
+  const saveProduct = async () => {
+    if (!productForm.name || !productForm.description) return toast.error('Name and description are required.');
+    if (!editingProduct && !productFile) return toast.error('Please select a product image.');
+    const fd = new FormData();
+    Object.entries(productForm).forEach(([k, v]) => fd.append(k, v));
+    if (productFile) fd.append('image', productFile);
+    try {
+      if (editingProduct) {
+        await API.put(`/products/${editingProduct._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        toast.success('Product updated!');
+      } else {
+        await API.post('/products', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        toast.success('Product added! It is now visible to customers.');
+      }
+      cancelProductForm();
+      fetchAll();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to save product.'); }
+  };
+
+  const deleteProduct = async id => {
+    if (!window.confirm('Delete this product?')) return;
+    try { await API.delete(`/products/${id}`); toast.success('Product deleted.'); fetchAll(); }
+    catch { toast.error('Failed to delete product.'); }
+  };
+
+  // ── Material handlers ──
+  const openAddMat = () => { setEditingMaterial(null); setMatForm(EMPTY_MAT); };
+  const openEditMat = m => { setEditingMaterial(m); setMatForm({ name: m.name, description: m.description || '', price: m.price, color: m.color }); };
+
+  const saveMaterial = async () => {
+    if (!matForm.name || !matForm.price) return toast.error('Name and price are required.');
+    try {
+      if (editingMaterial) {
+        await API.put(`/materials/${editingMaterial._id}`, matForm);
+        toast.success('Material updated!');
+      } else {
+        await API.post('/materials', matForm);
+        toast.success('Material added!');
+      }
+      setEditingMaterial(null);
+      setMatForm(EMPTY_MAT);
+      fetchAll();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to save material.'); }
+  };
+
+  const deleteMat = async m => {
+    if (m.isDefault) return toast.error('Cannot delete default materials (Cardboard, Thin Plastic, Acrylic Plastic).');
+    if (!window.confirm(`Delete "${m.name}"?`)) return;
+    try { await API.delete(`/materials/${m._id}`); toast.success('Material deleted.'); fetchAll(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Failed to delete material.'); }
+  };
+
+  // ── Order handlers ──
+  const deleteOrder = async id => {
+    if (!window.confirm('Delete this order? This cannot be undone.')) return;
+    try { await API.delete(`/orders/${id}`); toast.success('Order deleted.'); fetchAll(); }
+    catch { toast.error('Failed to delete order.'); }
+  };
+
+  // ── Feedback handlers ──
+  const toggleFeedback = async (id, approved) => { await API.put(`/feedback/${id}/approve`, { approved }); toast.success(approved ? 'Feedback approved!' : 'Feedback hidden.'); fetchAll(); };
+  const deleteFeedback = async id => { await API.delete(`/feedback/${id}`); toast.success('Feedback deleted.'); fetchAll(); };
+
+  // ── Settings ──
+  const saveAbout = async () => { await API.put('/settings/about', { value: aboutText }); toast.success('About Us updated!'); };
+  const saveContact = async () => { await API.put('/settings/contact', { value: contactInfo }); toast.success('Contact info updated!'); };
+
+  const btnPrimary = { background: '#1a56db', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 13 };
+  const btnDanger = { background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
+  const btnEdit = { background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f8faff' }}>
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(135deg,#0e3a8c,#1a56db)', padding: '28px 32px', color: '#fff' }}>
+        <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, margin: 0 }}>✦ Admin Dashboard</h1>
+        <p style={{ color: '#b3d1ff', margin: '6px 0 0', fontSize: 14 }}>Potters Productions Management Panel</p>
+      </div>
+
+      {/* Stats */}
+      <div style={{ background: '#fff', borderBottom: '1.5px solid #dbeafe', padding: '16px 32px', display: 'flex', gap: 40, overflowX: 'auto' }}>
+        {[['📦', products.length, 'Products'], ['🛒', orders.length, 'Orders'], ['💬', feedbacks.length, 'Feedbacks'], ['✅', feedbacks.filter(f => f.approved).length, 'Approved']].map(([icon, count, label]) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 100 }}>
+            <span style={{ fontSize: 22 }}>{icon}</span>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#0e3a8c' }}>{count}</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 180px)' }}>
+        {/* Sidebar */}
+        <div style={{ width: 220, background: '#fff', borderRight: '1.5px solid #dbeafe', padding: '24px 0', flexShrink: 0 }}>
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              style={{ width: '100%', padding: '13px 24px', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 14, fontWeight: activeTab === t.id ? 700 : 400, fontFamily: "'Lato',sans-serif", background: activeTab === t.id ? '#eef4ff' : 'transparent', color: activeTab === t.id ? '#1a56db' : '#374151', borderLeft: activeTab === t.id ? '3px solid #1a56db' : '3px solid transparent', transition: 'all .15s' }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+
+          {/* ── PRODUCTS ── */}
+          {activeTab === 'products' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#0e3a8c', margin: 0 }}>Manage Products</h2>
+                <button onClick={openAdd} style={btnPrimary}>+ Add New Product</button>
+              </div>
+
+              {showProductForm && (
+                <div style={{ ...cardStyle, marginBottom: 28 }}>
+                  <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 20 }}>
+                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    {[['Product Name *', 'name'], ['Bible Verse', 'bibleVerse'], ['Inspirational Sentence', 'inspirationalSentence'], ['Color Description', 'colorDescription'], ['Design Description', 'designDescription'], ['Theme Description', 'themeDescription']].map(([label, field]) => (
+                      <div key={field}>
+                        <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</label>
+                        <input style={inp} value={productForm[field]} onChange={e => setProductForm({ ...productForm, [field]: e.target.value })} placeholder={label.replace(' *', '')} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 16 }}>
+                    <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Description *</label>
+                    <textarea style={{ ...inp, height: 100, resize: 'vertical' }} value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} placeholder="Product description" />
+                  </div>
+                  <div style={{ marginTop: 16, display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>
+                        Product Image {!editingProduct && '*'}
+                      </label>
+                      <div onClick={() => fileRef.current.click()}
+                        style={{ border: '2px dashed #dbeafe', borderRadius: 12, padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#f8faff' }}>
+                        {productPreview ? (
+                          <img src={productPreview} alt="preview" style={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 8 }} />
+                        ) : (
+                          <div>
+                            <div style={{ fontSize: 32, marginBottom: 8 }}>📷</div>
+                            <div style={{ fontSize: 13, color: '#6b7280' }}>Click to upload image</div>
+                            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>JPG, PNG, WEBP up to 5MB</div>
+                          </div>
+                        )}
+                      </div>
+                      <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 36 }}>
+                      <input type="checkbox" id="vis" checked={productForm.isVisible} onChange={e => setProductForm({ ...productForm, isVisible: e.target.checked })} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                      <label htmlFor="vis" style={{ fontSize: 14, color: '#374151', cursor: 'pointer' }}>Visible to customers</label>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                    <button onClick={saveProduct} style={btnPrimary}>{editingProduct ? 'Update Product' : 'Add Product'}</button>
+                    <button onClick={cancelProductForm} style={{ ...btnEdit, background: '#f3f4f6', color: '#374151', border: 'none' }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {products.length === 0 && !showProductForm ? (
+                <div style={{ textAlign: 'center', padding: '60px', background: '#fff', borderRadius: 16, border: '1.5px solid #dbeafe', color: '#6b7280' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+                  <p>No products yet. Click "Add New Product" to get started.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 20 }}>
+                  {products.map(p => (
+                    <div key={p._id} style={cardStyle}>
+                      <div style={{ height: 160, borderRadius: 10, overflow: 'hidden', background: '#eef4ff', marginBottom: 14 }}>
+                        <img src={getImg(p)} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display = 'none'} />
+                      </div>
+                      <h4 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', margin: '0 0 4px 0', fontSize: 16 }}>{p.name}</h4>
+                      <p style={{ fontSize: 12, color: p.isVisible ? '#10b981' : '#f59e0b', margin: '0 0 8px 0', fontWeight: 700 }}>{p.isVisible ? '✅ Visible' : '🔒 Hidden'}</p>
+                      <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 14px 0', lineHeight: 1.6 }}>{p.description?.slice(0, 70)}...</p>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => openEdit(p)} style={{ ...btnEdit, flex: 1 }}>✏️ Edit</button>
+                        <button onClick={() => deleteProduct(p._id)} style={{ ...btnDanger, flex: 1 }}>🗑️ Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── MATERIALS ── */}
+          {activeTab === 'materials' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#0e3a8c', margin: 0 }}>Manage Materials & Prices</h2>
+                <button onClick={openAddMat} style={btnPrimary}>+ Add Material</button>
+              </div>
+
+              <div style={{ ...cardStyle, marginBottom: 28 }}>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 20 }}>
+                  {editingMaterial ? `Edit: ${editingMaterial.name}` : 'Add New Material'}
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Name *</label>
+                    <input style={inp} value={matForm.name} onChange={e => setMatForm({ ...matForm, name: e.target.value })} placeholder="e.g., Wood, Metal, Glass" />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Price (₹) *</label>
+                    <input style={inp} type="number" min="1" value={matForm.price} onChange={e => setMatForm({ ...matForm, price: e.target.value })} placeholder="Enter price in rupees" />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Description</label>
+                  <input style={inp} value={matForm.description} onChange={e => setMatForm({ ...matForm, description: e.target.value })} placeholder="Brief description of this material" />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Circle Color</label>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
+                    <input type="color" value={matForm.color} onChange={e => setMatForm({ ...matForm, color: e.target.value })}
+                      style={{ width: 52, height: 44, border: 'none', borderRadius: 8, cursor: 'pointer', padding: 2 }} />
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: matForm.color, border: '2px solid #dbeafe' }} />
+                    <span style={{ fontSize: 13, color: '#374151' }}>{matForm.color} — preview of circle on product page</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={saveMaterial} style={btnPrimary}>{editingMaterial ? 'Update Material' : 'Add Material'}</button>
+                  {editingMaterial && (
+                    <button onClick={() => { setEditingMaterial(null); setMatForm(EMPTY_MAT); }}
+                      style={{ ...btnEdit, background: '#f3f4f6', color: '#374151', border: 'none' }}>Cancel</button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {materials.map(m => (
+                  <div key={m._id} style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 20, padding: '18px 24px' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: m.color, border: '2px solid #dbeafe', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 16 }}>{m.name}</span>
+                        {m.isDefault && <span style={{ fontSize: 11, background: '#eef4ff', color: '#1a56db', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Default</span>}
+                      </div>
+                      <div style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }}>{m.description}</div>
+                    </div>
+                    <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, color: '#1a56db', fontWeight: 700, minWidth: 80, textAlign: 'right' }}>₹{m.price}</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => openEditMat(m)} style={btnEdit}>✏️ Edit</button>
+                      <button onClick={() => deleteMat(m)}
+                        style={{ ...btnDanger, opacity: m.isDefault ? 0.4 : 1, cursor: m.isDefault ? 'not-allowed' : 'pointer' }}
+                        title={m.isDefault ? 'Cannot delete default materials' : 'Delete material'}>
+                        🗑️ {m.isDefault ? 'Protected' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── ORDERS ── */}
+          {activeTab === 'orders' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#0e3a8c', margin: 0 }}>All Orders</h2>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>
+                  Total: <strong style={{ color: '#0e3a8c' }}>{orders.length}</strong> orders
+                </div>
+              </div>
+
+              {orders.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px', background: '#fff', borderRadius: 16, color: '#6b7280', border: '1.5px solid #dbeafe' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+                  <p>No orders yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {orders.map(o => (
+                    <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
+                      {/* Delete button */}
+                      <button onClick={() => deleteOrder(o._id)}
+                        title="Delete this order"
+                        style={{ position: 'absolute', top: 16, right: 16, background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                        🗑️ Delete
+                      </button>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 20, paddingRight: 100 }}>
+                        {/* Customer */}
+                        <div>
+                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 8 }}>Customer</div>
+                          <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 15, marginBottom: 4 }}>{o.customer?.name}</div>
+                          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 3 }}>📧 {o.customer?.email}</div>
+                          <div style={{ fontSize: 13, color: '#6b7280' }}>📱 {o.customer?.phone || 'Not provided'}</div>
+                        </div>
+
+                        {/* Product */}
+                        <div>
+                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 8 }}>Product</div>
+                          <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 15, marginBottom: 4 }}>{o.product?.name}</div>
+                          <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.6 }}>{o.product?.description?.slice(0, 70)}...</div>
+                        </div>
+
+                        {/* Material & Price */}
+                        <div>
+                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 8 }}>Material & Price</div>
+                          <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 15, marginBottom: 6 }}>{o.material?.name}</div>
+                          <div style={{ fontSize: 26, color: '#1a56db', fontWeight: 700, fontFamily: "'Playfair Display',serif" }}>₹{o.material?.price}</div>
+                        </div>
+
+                        {/* Date & Status */}
+                        <div>
+                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 8 }}>Date & Status</div>
+                          <div style={{ fontSize: 14, color: '#374151', marginBottom: 8 }}>
+                            📅 {new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </div>
+                          <span style={{
+                            display: 'inline-block', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                            background: o.status === 'Pending' ? '#fef3c7' : o.status === 'Processing' ? '#dbeafe' : o.status === 'Delivered' ? '#d1fae5' : '#fee2e2',
+                            color: o.status === 'Pending' ? '#92400e' : o.status === 'Processing' ? '#1e40af' : o.status === 'Delivered' ? '#065f46' : '#dc2626'
+                          }}>
+                            {o.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── FEEDBACK ── */}
+          {activeTab === 'feedback' && (
+            <div>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#0e3a8c', marginBottom: 28 }}>Manage Feedback</h2>
+              {feedbacks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px', background: '#fff', borderRadius: 16, color: '#6b7280', border: '1.5px solid #dbeafe' }}>
+                  <p>No feedback submitted yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {feedbacks.map(f => (
+                    <div key={f._id} style={{ ...cardStyle, borderLeft: `4px solid ${f.approved ? '#10b981' : '#f59e0b'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700, color: '#0e3a8c' }}>{f.name}</span>
+                            <span style={{ fontSize: 12, color: '#6b7280' }}>{f.email}</span>
+                            <span style={{ color: '#f59e0b' }}>{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</span>
+                          </div>
+                          <p style={{ color: '#374151', fontSize: 14, lineHeight: 1.7, fontStyle: 'italic', margin: '0 0 6px 0' }}>"{f.message}"</p>
+                          <div style={{ fontSize: 12, color: '#9ca3af' }}>{new Date(f.createdAt).toLocaleDateString('en-IN')}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: 20, background: f.approved ? '#d1fae5' : '#fef3c7', color: f.approved ? '#065f46' : '#92400e', fontSize: 12, fontWeight: 700 }}>
+                            {f.approved ? '✅ Published' : '⏳ Pending'}
+                          </span>
+                          <button onClick={() => toggleFeedback(f._id, !f.approved)} style={f.approved ? btnDanger : btnEdit}>
+                            {f.approved ? 'Hide' : '✅ Approve'}
+                          </button>
+                          <button onClick={() => deleteFeedback(f._id)} style={btnDanger}>🗑️ Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ABOUT US ── */}
+          {activeTab === 'about' && (
+            <div>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#0e3a8c', marginBottom: 28 }}>Edit About Us</h2>
+              <div style={cardStyle}>
+                <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12, marginTop: 0 }}>This text appears on the About Us page visible to all visitors.</p>
+                <textarea value={aboutText} onChange={e => setAboutText(e.target.value)}
+                  style={{ ...inp, height: 360, resize: 'vertical', fontSize: 14, lineHeight: 1.8 }}
+                  placeholder="Write your About Us content here..." />
+                <button onClick={saveAbout} style={{ ...btnPrimary, marginTop: 16 }}>Save Changes</button>
+              </div>
+            </div>
+          )}
+
+          {/* ── CONTACT ── */}
+          {activeTab === 'contact' && (
+            <div>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, color: '#0e3a8c', marginBottom: 28 }}>Edit Contact Info</h2>
+              <div style={cardStyle}>
+                {[['Phone Number', 'phone', '📱', '+91 XXXXX XXXXX'], ['Email Address', 'email', '📧', 'productpotter@gmail.com'], ['WhatsApp Number', 'whatsapp', '💬', '+91 XXXXX XXXXX'], ['Instagram Handle', 'instagram', '📸', '@pottersproductions'], ['Business Address', 'address', '📍', 'City, State, India']].map(([label, field, icon, ph]) => (
+                  <div key={field} style={{ marginBottom: 20 }}>
+                    <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{icon} {label}</label>
+                    <input style={inp} value={contactInfo[field] || ''} onChange={e => setContactInfo({ ...contactInfo, [field]: e.target.value })} placeholder={ph} />
+                  </div>
+                ))}
+                <button onClick={saveContact} style={btnPrimary}>Save Contact Info</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
