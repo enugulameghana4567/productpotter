@@ -9,6 +9,7 @@ const productSchema = new mongoose.Schema({
   designDescription: { type: String, default: '' },
   themeDescription: { type: String, default: '' },
   image: { type: String, required: true },
+  video: { type: String, default: '' },
   isVisible: { type: Boolean, default: true }
 }, { timestamps: true });
 

@@ -4,7 +4,6 @@ const Product = require('../models/Product');
 const { auth, adminAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// GET /api/products - public
 router.get('/', async (req, res) => {
   try {
     const products = await Product.find({ isVisible: true }).sort({ createdAt: -1 });
@@ -12,7 +11,6 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// GET /api/products/all - admin
 router.get('/all', adminAuth, async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
@@ -20,7 +18,6 @@ router.get('/all', adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// GET /api/products/:id
 router.get('/:id', auth, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -29,34 +26,29 @@ router.get('/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// POST /api/products - admin
-router.post('/', adminAuth, upload.single('image'), async (req, res) => {
+router.post('/', adminAuth, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), async (req, res) => {
   try {
-    const {
-      name, description, bibleVerse, inspirationalSentence,
-      colorDescription, designDescription, themeDescription, isVisible
-    } = req.body;
-
+    const { name, description, bibleVerse, inspirationalSentence, colorDescription, designDescription, themeDescription, isVisible } = req.body;
     if (!name || !description) {
       return res.status(400).json({ message: 'Name and description are required.' });
     }
-
-    if (!req.file) {
+    if (!req.files?.image) {
       return res.status(400).json({ message: 'Product image is required.' });
     }
-
     const product = new Product({
-      name,
-      description,
+      name, description,
       bibleVerse: bibleVerse || '',
       inspirationalSentence: inspirationalSentence || '',
       colorDescription: colorDescription || '',
       designDescription: designDescription || '',
       themeDescription: themeDescription || '',
-      image: req.file.filename,
+      image: req.files.image[0].filename,
+      video: req.files?.video ? req.files.video[0].filename : '',
       isVisible: isVisible === 'false' ? false : true
     });
-
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -65,11 +57,14 @@ router.post('/', adminAuth, upload.single('image'), async (req, res) => {
   }
 });
 
-// PUT /api/products/:id - admin
-router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
+router.put('/:id', adminAuth, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), async (req, res) => {
   try {
     const updates = { ...req.body };
-    if (req.file) updates.image = req.file.filename;
+    if (req.files?.image) updates.image = req.files.image[0].filename;
+    if (req.files?.video) updates.video = req.files.video[0].filename;
     if (updates.isVisible !== undefined) {
       updates.isVisible = updates.isVisible === 'false' ? false : true;
     }
@@ -82,7 +77,6 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id - admin
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);

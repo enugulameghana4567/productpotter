@@ -23,15 +23,9 @@ body {
 }
 
 h1, h2, h3 { font-family: var(--font-serif); }
-
 a { text-decoration: none; color: inherit; }
-
 button { cursor: pointer; font-family: var(--font-sans); }
-
-input, textarea, select {
-  font-family: var(--font-sans);
-  outline: none;
-}
+input, textarea, select { font-family: var(--font-sans); outline: none; }
 
 .container {
   max-width: 1100px;
@@ -39,7 +33,96 @@ input, textarea, select {
   padding: 0 20px;
 }
 
-/* Toast overrides */
+/* ── RESPONSIVE ── */
+
+/* Mobile: 0-480px */
+@media (max-width: 480px) {
+  nav .nav-links { display: none; }
+
+  .product-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .product-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  .hero-title {
+    font-size: 28px !important;
+  }
+
+  .admin-sidebar {
+    width: 60px !important;
+    overflow: hidden;
+  }
+
+  .admin-sidebar button span {
+    display: none;
+  }
+
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats-bar {
+    gap: 16px !important;
+    padding: 12px 16px !important;
+  }
+
+  .material-circles {
+    gap: 16px !important;
+  }
+}
+
+/* Tablet: 481-768px */
+@media (min-width: 481px) and (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .product-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+
+  .hero-title {
+    font-size: 36px !important;
+  }
+
+  .admin-content {
+    padding: 16px !important;
+  }
+}
+
+/* Desktop: 769px+ */
+@media (min-width: 769px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+  }
+
+  .product-detail-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Navbar responsive */
+@media (max-width: 768px) {
+  .navbar-inner {
+    padding: 0 16px !important;
+    height: 60px !important;
+  }
+
+  .navbar-links {
+    display: none !important;
+  }
+
+  .navbar-mobile-menu {
+    display: flex !important;
+  }
+}
+
+/* Toastify */
 .Toastify__toast { font-family: var(--font-sans); border-radius: 10px; }
 .Toastify__toast--success { background: #1a56db; }
 
@@ -47,3 +130,12 @@ input, textarea, select {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #1a56db; border-radius: 3px; }
+
+/* Image zoom */
+img { max-width: 100%; height: auto; }
+
+/* Form inputs */
+input, textarea, select {
+  -webkit-appearance: none;
+  border-radius: 8px;
+}
