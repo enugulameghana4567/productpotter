@@ -2,12 +2,15 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 465,
-  secure: true,
+  port: 2525,
+  secure: false,
   auth: {
     user: process.env.BREVO_USER,
     pass: process.env.BREVO_PASS
-  }
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 });
 
 transporter.verify((error) => {
@@ -89,7 +92,7 @@ const sendOrderConfirmation = async (toEmail, name, productName, material, price
 };
 
 const sendContactNotification = async (name, email, message) => {
-  console.log('📧 Sending contact notification to admin');
+  console.log('📧 Sending contact notification to admin from:', email);
   const result = await transporter.sendMail({
     from: sender,
     replyTo: email,
@@ -99,12 +102,12 @@ const sendContactNotification = async (name, email, message) => {
       <div style="font-family:Arial,sans-serif;max-width:600px;">
         <h2 style="color:#1a56db;">New Contact Inquiry</h2>
         <p><strong>From:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Customer Email:</strong> ${email}</p>
         <p><strong>Message:</strong></p>
         <div style="background:#f0f4ff;padding:16px;border-radius:8px;border-left:4px solid #1a56db;">
           ${message}
         </div>
-        <p style="color:#999;font-size:12px;margin-top:20px;">Reply to this email to respond directly to ${name}</p>
+        <p style="color:#999;font-size:12px;margin-top:20px;">Reply to this email to respond directly to ${name} at ${email}</p>
       </div>
     `
   });
@@ -125,15 +128,11 @@ const sendAdminMessage = async (toEmail, customerName, productName, message) => 
         </div>
         <div style="padding:40px;">
           <h2 style="color:#1a56db;">Dear ${customerName},</h2>
-          <p style="color:#333;font-size:14px;margin-bottom:8px;">
-            Regarding your order: <strong>${productName}</strong>
-          </p>
+          <p style="color:#333;font-size:14px;margin-bottom:8px;">Regarding your order: <strong>${productName}</strong></p>
           <div style="background:#eef4ff;border-radius:8px;padding:20px;margin:20px 0;border-left:4px solid #1a56db;">
             <p style="color:#333;line-height:1.8;margin:0;">${message}</p>
           </div>
-          <p style="color:#333;line-height:1.8;">
-            Thank you for choosing Potters Productions. 🙏
-          </p>
+          <p style="color:#333;line-height:1.8;">Thank you for choosing Potters Productions. 🙏</p>
         </div>
         <div style="background:#1a56db;padding:20px;text-align:center;">
           <p style="color:#b3d1ff;margin:0;font-size:13px;">© 2025 Potters Productions | productpotter@gmail.com</p>
