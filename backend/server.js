@@ -9,8 +9,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean),
+    'https://productpotter.vercel.app'
+  ],
   credentials: true
 }));
 
