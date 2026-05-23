@@ -2,13 +2,12 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.BREVO_USER,
     pass: process.env.BREVO_PASS
-  },
-  tls: { rejectUnauthorized: false }
+  }
 });
 
 transporter.verify((error) => {
@@ -21,7 +20,6 @@ transporter.verify((error) => {
 
 const sender = `"Potters Productions" <${process.env.BREVO_USER}>`;
 
-// 1. Welcome email - registration
 const sendWelcomeEmail = async (toEmail, name) => {
   console.log('📧 Sending welcome email to:', toEmail);
   const result = await transporter.sendMail({
@@ -54,7 +52,6 @@ const sendWelcomeEmail = async (toEmail, name) => {
   console.log('✅ Welcome email sent:', result.messageId);
 };
 
-// 2. Order confirmation - customer
 const sendOrderConfirmation = async (toEmail, name, productName, material, price) => {
   console.log('📧 Sending order confirmation to:', toEmail);
   const result = await transporter.sendMail({
@@ -91,9 +88,8 @@ const sendOrderConfirmation = async (toEmail, name, productName, material, price
   console.log('✅ Order confirmation sent:', result.messageId);
 };
 
-// 3. Contact notification - customer to admin
 const sendContactNotification = async (name, email, message) => {
-  console.log('📧 Sending contact notification to admin from:', email);
+  console.log('📧 Sending contact notification to admin');
   const result = await transporter.sendMail({
     from: sender,
     replyTo: email,
@@ -115,7 +111,6 @@ const sendContactNotification = async (name, email, message) => {
   console.log('✅ Contact notification sent:', result.messageId);
 };
 
-// 4. Admin message to customer
 const sendAdminMessage = async (toEmail, customerName, productName, message) => {
   console.log('📧 Sending admin message to customer:', toEmail);
   const result = await transporter.sendMail({
@@ -130,7 +125,9 @@ const sendAdminMessage = async (toEmail, customerName, productName, message) => 
         </div>
         <div style="padding:40px;">
           <h2 style="color:#1a56db;">Dear ${customerName},</h2>
-          <p style="color:#333;font-size:14px;margin-bottom:8px;">Regarding your order: <strong>${productName}</strong></p>
+          <p style="color:#333;font-size:14px;margin-bottom:8px;">
+            Regarding your order: <strong>${productName}</strong>
+          </p>
           <div style="background:#eef4ff;border-radius:8px;padding:20px;margin:20px 0;border-left:4px solid #1a56db;">
             <p style="color:#333;line-height:1.8;margin:0;">${message}</p>
           </div>
