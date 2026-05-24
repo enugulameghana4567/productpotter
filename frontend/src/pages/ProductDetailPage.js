@@ -21,7 +21,7 @@ export default function ProductDetailPage() {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [booking, setBooking] = useState(false);
-  const [activeImg, setActiveImg] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const defaultMaterials = [
     { _id: 'm1', name: 'Cardboard', description: 'Sturdy cardboard finish, lightweight and elegant.', price: 300, color: '#8B5E3C' },
@@ -52,8 +52,16 @@ export default function ProductDetailPage() {
     return `${IMG_BASE}/uploads/${filename}`;
   };
 
-  // All images: main + extras
+  const getVideoUrl = p => {
+    if (!p?.video) return '';
+    return `${IMG_BASE}/uploads/${p.video}`;
+  };
+
+  // All media items: images first, then video as last item
   const allImages = product ? [product.image, ...(product.images || [])].filter(Boolean) : [];
+  const hasVideo = !!(product?.video);
+  // Total items = images + (1 if video)
+  const totalItems = allImages.length + (hasVideo ? 1 : 0);
 
   const handleOrderBooking = async () => {
     if (!selectedMaterial) return toast.error('Please select a material');
@@ -89,12 +97,73 @@ export default function ProductDetailPage() {
   return (
     <>
       <style>{`
-        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
-        .thumb-row { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; padding-bottom: 4px; }
-        .thumb-row::-webkit-scrollbar { height: 4px; }
-        .thumb-row::-webkit-scrollbar-thumb { background: #1a56db; border-radius: 2px; }
+        .detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 60px;
+          align-items: start;
+        }
+        .thumb-scroll {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 6px;
+          margin-top: 12px;
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+        .thumb-scroll::-webkit-scrollbar {
+          height: 4px;
+        }
+        .thumb-scroll::-webkit-scrollbar-thumb {
+          background: #1a56db;
+          border-radius: 2px;
+        }
+        .thumb-scroll::-webkit-scrollbar-track {
+          background: #eef4ff;
+          border-radius: 2px;
+        }
+        .thumb-item {
+          flex-shrink: 0;
+          width: 68px;
+          height: 68px;
+          border-radius: 10px;
+          overflow: hidden;
+          cursor: pointer;
+          border: 2.5px solid #dbeafe;
+          transition: border-color .2s, transform .2s;
+        }
+        .thumb-item:hover {
+          transform: scale(1.05);
+        }
+        .thumb-item.active {
+          border-color: #1a56db;
+          box-shadow: 0 0 0 2px rgba(26,86,219,0.2);
+        }
+        .thumb-video {
+          background: #0e3a8c;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .dot-row {
+          display: flex;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 10px;
+          flex-wrap: wrap;
+        }
         @media (max-width: 768px) {
-          .detail-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .detail-grid {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          .thumb-item {
+            width: 56px;
+            height: 56px;
+          }
         }
       `}</style>
 
@@ -106,45 +175,97 @@ export default function ProductDetailPage() {
 
         <div className="detail-grid">
 
-          {/* LEFT: Images */}
+          {/* LEFT: Media Gallery */}
           <div>
-            {/* Main image */}
-            <div style={{ borderRadius: 20, overflow: 'hidden', border: '1.5px solid #dbeafe', boxShadow: '0 8px 40px rgba(26,86,219,0.10)', background: '#eef4ff' }}>
-              <img
-                src={getImg(allImages[activeImg])}
-                alt={product.name}
-                style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', display: 'block' }}
-                onError={e => { e.target.src = '/images/product1.jpeg'; }}
-              />
+            {/* Main display area */}
+            <div style={{ borderRadius: 20, overflow: 'hidden', border: '1.5px solid #dbeafe', boxShadow: '0 8px 40px rgba(26,86,219,0.10)', background: '#eef4ff', position: 'relative' }}>
+
+              {/* Show image or video based on activeIndex */}
+              {activeIndex < allImages.length ? (
+                <img
+                  src={getImg(allImages[activeIndex])}
+                  alt={product.name}
+                  style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', display: 'block' }}
+                  onError={e => { e.target.src = '/images/product1.jpeg'; }}
+                />
+              ) : (
+                <div style={{ width: '100%', aspectRatio: '3/4', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <video
+                    src={getVideoUrl(product)}
+                    controls
+                    autoPlay
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+              )}
+
+              {/* Arrow navigation - left */}
+              {totalItems > 1 && activeIndex > 0 && (
+                <button
+                  onClick={() => setActiveIndex(i => i - 1)}
+                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#1a56db', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                  ‹
+                </button>
+              )}
+
+              {/* Arrow navigation - right */}
+              {totalItems > 1 && activeIndex < totalItems - 1 && (
+                <button
+                  onClick={() => setActiveIndex(i => i + 1)}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#1a56db', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                  ›
+                </button>
+              )}
             </div>
 
-            {/* Thumbnail row - scrollable */}
-            {allImages.length > 1 && (
-              <div className="thumb-row">
+            {/* Scrollable thumbnail row - images + video thumb */}
+            {totalItems > 1 && (
+              <div className="thumb-scroll">
                 {allImages.map((img, i) => (
-                  <div key={i} onClick={() => setActiveImg(i)}
-                    style={{ flexShrink: 0, width: 64, height: 64, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: activeImg === i ? '2.5px solid #1a56db' : '2px solid #dbeafe', boxShadow: activeImg === i ? '0 0 0 2px rgba(26,86,219,0.2)' : 'none', transition: 'all .2s' }}>
-                    <img src={getImg(img)} alt={`view ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display = 'none'} />
+                  <div
+                    key={`img-${i}`}
+                    className={`thumb-item ${activeIndex === i ? 'active' : ''}`}
+                    onClick={() => setActiveIndex(i)}
+                  >
+                    <img
+                      src={getImg(img)}
+                      alt={`view ${i + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => e.target.style.display = 'none'}
+                    />
                   </div>
                 ))}
+
+                {/* Video thumbnail at end */}
+                {hasVideo && (
+                  <div
+                    className={`thumb-item thumb-video ${activeIndex === allImages.length ? 'active' : ''}`}
+                    onClick={() => setActiveIndex(allImages.length)}
+                  >
+                    <div style={{ fontSize: 22, color: '#fff' }}>▶</div>
+                    <div style={{ fontSize: 9, color: '#b3d1ff', fontWeight: 700 }}>VIDEO</div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Dot indicators */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
-              {allImages.map((_, i) => (
-                <div key={i} onClick={() => setActiveImg(i)} style={{ width: i === activeImg ? 24 : 8, height: 4, borderRadius: 2, background: i === activeImg ? '#1a56db' : '#dbeafe', cursor: 'pointer', transition: 'all .2s' }} />
-              ))}
-            </div>
-
-            {/* Video below images */}
-            {product.video && (
-              <div style={{ marginTop: 16, borderRadius: 16, overflow: 'hidden', border: '1.5px solid #dbeafe' }}>
-                <video
-                  src={`${IMG_BASE}/uploads/${product.video}`}
-                  controls
-                  style={{ width: '100%', display: 'block', maxHeight: 280 }}
-                />
+            {totalItems > 1 && (
+              <div className="dot-row">
+                {Array.from({ length: totalItems }).map((_, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setActiveIndex(i)}
+                    style={{
+                      width: i === activeIndex ? 24 : 8,
+                      height: 4,
+                      borderRadius: 2,
+                      background: i === activeIndex ? '#1a56db' : '#dbeafe',
+                      cursor: 'pointer',
+                      transition: 'all .2s'
+                    }}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -211,7 +332,7 @@ export default function ProductDetailPage() {
               <div style={{ fontSize: 36, fontWeight: 700, color: '#0e3a8c', fontFamily: "'Lato',sans-serif", lineHeight: 1 }}>
                 ₹{selectedMaterial?.price || '—'}
               </div>
-              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}></div>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Inclusive of All Taxes</div>
             </div>
 
             <button onClick={handleOrderBooking} disabled={booking}
