@@ -332,7 +332,7 @@ export default function ProductDetailPage() {
               <div style={{ fontSize: 36, fontWeight: 700, color: '#0e3a8c', fontFamily: "'Lato',sans-serif", lineHeight: 1 }}>
                 ₹{selectedMaterial?.price || '—'}
               </div>
-              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Inclusive of All Taxes</div>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}></div>
             </div>
 
             <button onClick={handleOrderBooking} disabled={booking}
