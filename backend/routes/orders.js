@@ -36,7 +36,6 @@ router.post('/', auth, async (req, res) => {
     const order = new Order(orderData);
     await order.save();
 
-    // Send email async - don't wait for it
     sendOrderConfirmation(
       customer.email,
       customer.name,
@@ -45,7 +44,6 @@ router.post('/', auth, async (req, res) => {
       material.price
     ).catch(err => console.error('Order email error:', err.message));
 
-    // Respond immediately
     res.status(201).json({ success: true, order });
   } catch (err) {
     console.error('Order save error:', err.message);
@@ -78,7 +76,7 @@ router.put('/:id/status', adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// POST /api/orders/:id/message - admin sends message to customer
+// POST /api/orders/:id/message - save sent status to DB
 router.post('/:id/message', adminAuth, async (req, res) => {
   try {
     const { message } = req.body;
@@ -91,7 +89,17 @@ router.post('/:id/message', adminAuth, async (req, res) => {
       order.product.name,
       message
     );
-    res.json({ message: 'Message sent to customer successfully!' });
+
+    // Save message sent info permanently in database
+    await Order.findByIdAndUpdate(req.params.id, {
+      messageSent: {
+        sent: true,
+        sentAt: new Date(),
+        preview: message.slice(0, 60)
+      }
+    });
+
+    res.json({ message: 'Message sent successfully!' });
   } catch (err) {
     console.error('Admin message error:', err.message);
     res.status(500).json({ message: 'Failed to send message: ' + err.message });

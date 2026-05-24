@@ -7,7 +7,7 @@ const orderSchema = new mongoose.Schema({
     phone: String
   },
   product: {
-    id: { type: String }, // String type to avoid BSONError with "default1"
+    id: { type: String },
     name: String,
     description: String,
     image: String
@@ -20,6 +20,11 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: 'Pending',
     enum: ['Pending', 'Processing', 'Delivered', 'Cancelled']
+  },
+  messageSent: {
+    sent: { type: Boolean, default: false },
+    sentAt: { type: Date },
+    preview: { type: String }
   }
 }, { timestamps: true });
 

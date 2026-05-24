@@ -17,7 +17,6 @@ const EMPTY_MAT = { name: '', description: '', price: '', color: '#8B5E3C' };
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('products');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -139,29 +138,59 @@ export default function AdminDashboard() {
 
   const handleExtraImages = e => {
     const files = Array.from(e.target.files);
-    setExtraFiles(files);
-    setExtraPreviews(files.map(f => URL.createObjectURL(f)));
+    setExtraFiles(prev => {
+      const newFiles = [...prev, ...files];
+      return newFiles;
+    });
+    const newPreviews = files.map(f => URL.createObjectURL(f));
+    setExtraPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeExtraImage = (index) => {
+    setExtraFiles(prev => prev.filter((_, i) => i !== index));
+    setExtraPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const saveProduct = async () => {
-    if (!productForm.name || !productForm.description) return toast.error('Name and description are required.');
-    if (!editingProduct && !productFile) return toast.error('Please select a product image.');
+    if (!productForm.name || !productForm.description) {
+      return toast.error('Name and description are required.');
+    }
+    if (!editingProduct && !productFile) {
+      return toast.error('Please select a product image.');
+    }
+
     const fd = new FormData();
-    Object.entries(productForm).forEach(([k, v]) => fd.append(k, v));
+    fd.append('name', productForm.name);
+    fd.append('description', productForm.description);
+    fd.append('bibleVerse', productForm.bibleVerse || '');
+    fd.append('inspirationalSentence', productForm.inspirationalSentence || '');
+    fd.append('colorDescription', productForm.colorDescription || '');
+    fd.append('designDescription', productForm.designDescription || '');
+    fd.append('themeDescription', productForm.themeDescription || '');
+    fd.append('isVisible', productForm.isVisible);
+
     if (productFile) fd.append('image', productFile);
     if (videoFile) fd.append('video', videoFile);
     extraFiles.forEach(f => fd.append('images', f));
+
     try {
       if (editingProduct) {
-        await API.put(`/products/${editingProduct._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await API.put(`/products/${editingProduct._id}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         toast.success('Product updated!');
       } else {
-        await API.post('/products', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await API.post('/products', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         toast.success('Product added! Visible to customers now.');
       }
       cancelProductForm();
       fetchAll();
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to save product.'); }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error(err.response?.data?.message || 'Failed to save product.');
+    }
   };
 
   const deleteProduct = async id => {
@@ -211,6 +240,7 @@ export default function AdminDashboard() {
     try {
       await API.post(`/orders/${messageOrder._id}/message`, { message: messageText });
       setMessageText('__SENT__');
+      fetchAll(); // refresh to get updated messageSent from DB
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send message.');
     }
@@ -232,10 +262,7 @@ export default function AdminDashboard() {
   const saveAbout = async () => { await API.put('/settings/about', { value: aboutText }); toast.success('About Us updated!'); };
   const saveContact = async () => { await API.put('/settings/contact', { value: contactInfo }); toast.success('Contact info updated!'); };
 
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    setSidebarOpen(false);
-  };
+  const handleTabChange = (tabId) => { setActiveTab(tabId); };
 
   const btnPrimary = { background: '#1a56db', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 13 };
   const btnDanger = { background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
@@ -244,133 +271,32 @@ export default function AdminDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8faff' }}>
       <style>{`
-        .admin-sidebar {
-          width: 220px;
-          background: #fff;
-          border-right: 1.5px solid #dbeafe;
-          padding: 24px 0;
-          flex-shrink: 0;
-        }
-        .admin-content {
-          flex: 1;
-          padding: 24px;
-          overflow-y: auto;
-          min-width: 0;
-        }
-        .admin-body {
-          display: flex;
-          min-height: calc(100vh - 180px);
-        }
-        .mobile-tab-bar {
-          display: none;
-        }
-        .mobile-sidebar-overlay {
-          display: none;
-        }
-        .product-form-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 16px;
-        }
-        .image-video-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-top: 16px;
-        }
-        .order-card-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 16px;
-          padding-right: 180px;
-        }
-        .order-actions {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          display: flex;
-          gap: 8px;
-        }
-        .mat-price-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
+        .admin-sidebar { width: 220px; background: #fff; border-right: 1.5px solid #dbeafe; padding: 24px 0; flex-shrink: 0; }
+        .admin-content { flex: 1; padding: 24px; overflow-y: auto; min-width: 0; }
+        .admin-body { display: flex; min-height: calc(100vh - 180px); }
+        .mobile-tab-bar { display: none; }
+        .product-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .image-video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        .order-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; padding-right: 140px; }
+        .order-actions { position: absolute; top: 16px; right: 16px; display: flex; gap: 8px; flex-direction: column; align-items: flex-end; }
+        .mat-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
         @media (max-width: 768px) {
-          .admin-sidebar {
-            display: none !important;
-          }
-          .admin-body {
-            flex-direction: column;
-          }
-          .admin-content {
-            padding: 16px;
-          }
-          .mobile-tab-bar {
-            display: flex;
-            overflow-x: auto;
-            background: #fff;
-            border-bottom: 1.5px solid #dbeafe;
-            padding: 0;
-            gap: 0;
-            -webkit-overflow-scrolling: touch;
-          }
-          .mobile-tab-bar::-webkit-scrollbar {
-            display: none;
-          }
-          .mobile-tab-btn {
-            flex-shrink: 0;
-            padding: 12px 14px;
-            border: none;
-            border-bottom: 3px solid transparent;
-            background: transparent;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 700;
-            font-family: 'Lato', sans-serif;
-            color: #6b7280;
-            white-space: nowrap;
-          }
-          .mobile-tab-btn.active {
-            color: #1a56db;
-            border-bottom: 3px solid #1a56db;
-            background: #eef4ff;
-          }
-          .product-form-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .image-video-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .order-card-grid {
-            grid-template-columns: 1fr 1fr !important;
-            padding-right: 0 !important;
-          }
-          .order-actions {
-            position: static !important;
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-          }
-          .mat-price-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .admin-stats {
-            gap: 16px !important;
-            padding: 12px 16px !important;
-          }
-          .admin-header {
-            padding: 20px 16px !important;
-          }
-          .admin-header h1 {
-            font-size: 22px !important;
-          }
-          .mat-row {
-            flex-wrap: wrap;
-            gap: 12px !important;
-          }
+          .admin-sidebar { display: none !important; }
+          .admin-body { flex-direction: column; }
+          .admin-content { padding: 12px; }
+          .mobile-tab-bar { display: flex; overflow-x: auto; background: #fff; border-bottom: 1.5px solid #dbeafe; padding: 0; gap: 0; -webkit-overflow-scrolling: touch; }
+          .mobile-tab-bar::-webkit-scrollbar { display: none; }
+          .mobile-tab-btn { flex-shrink: 0; padding: 11px 12px; border: none; border-bottom: 3px solid transparent; background: transparent; cursor: pointer; font-size: 11px; font-weight: 700; font-family: 'Lato', sans-serif; color: #6b7280; white-space: nowrap; }
+          .mobile-tab-btn.active { color: #1a56db; border-bottom: 3px solid #1a56db; background: #eef4ff; }
+          .product-form-grid { grid-template-columns: 1fr !important; }
+          .image-video-grid { grid-template-columns: 1fr !important; }
+          .order-card-grid { grid-template-columns: 1fr 1fr !important; padding-right: 0 !important; }
+          .order-actions { position: static !important; flex-direction: row !important; margin-bottom: 12px; }
+          .mat-price-grid { grid-template-columns: 1fr !important; }
+          .admin-stats { gap: 16px !important; padding: 12px 16px !important; }
+          .admin-header { padding: 16px !important; }
+          .admin-header h1 { font-size: 20px !important; }
+          .mat-row { flex-wrap: wrap; gap: 10px !important; }
         }
       `}</style>
 
@@ -383,7 +309,7 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
                 <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#10b981', marginTop: 0, marginBottom: 8 }}>Message Sent!</h3>
                 <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>
-                  Your message has been sent successfully to<br />
+                  Message sent successfully to<br />
                   <strong style={{ color: '#0e3a8c' }}>{messageOrder.customer.email}</strong>
                 </p>
                 <button onClick={() => { setMessageOrder(null); setMessageText(''); }}
@@ -395,8 +321,7 @@ export default function AdminDashboard() {
               <>
                 <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 8 }}>Send Message to Customer</h3>
                 <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                  To: <strong>{messageOrder.customer.name}</strong><br />
-                  {messageOrder.customer.email}<br />
+                  To: <strong>{messageOrder.customer.name}</strong> — {messageOrder.customer.email}<br />
                   Order: <strong>{messageOrder.product.name}</strong>
                 </p>
                 <div style={{ marginBottom: 12 }}>
@@ -410,7 +335,7 @@ export default function AdminDashboard() {
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Message *</label>
                   <textarea style={{ ...inp, height: 100, resize: 'vertical' }}
-                    placeholder="Type your message..."
+                    placeholder="Type your message to the customer..."
                     value={messageText}
                     onChange={e => setMessageText(e.target.value)} />
                 </div>
@@ -522,11 +447,12 @@ export default function AdminDashboard() {
                         ) : (
                           <div>
                             <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
-                            <div style={{ fontSize: 12, color: '#6b7280' }}>Click to upload</div>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>Click to upload image</div>
+                            <div style={{ fontSize: 11, color: '#9ca3af' }}>JPG, PNG, WEBP</div>
                           </div>
                         )}
                       </div>
-                      <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                      <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleFileChange} style={{ display: 'none' }} />
                     </div>
 
                     <div>
@@ -540,36 +466,44 @@ export default function AdminDashboard() {
                         ) : (
                           <div>
                             <div style={{ fontSize: 24, marginBottom: 4 }}>🎥</div>
-                            <div style={{ fontSize: 12, color: '#6b7280' }}>Click to upload</div>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>Click to upload video</div>
+                            <div style={{ fontSize: 11, color: '#9ca3af' }}>MP4, MOV, AVI</div>
                           </div>
                         )}
                       </div>
-                      <input ref={videoRef} type="file" accept="video/*" onChange={handleVideoChange} style={{ display: 'none' }} />
+                      <input ref={videoRef} type="file" accept="video/mp4,video/mov,video/avi,video/mkv,video/webm" onChange={handleVideoChange} style={{ display: 'none' }} />
                     </div>
                   </div>
 
+                  {/* Extra Images - accumulate, can remove individual */}
                   <div style={{ marginTop: 14 }}>
                     <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>
-                      Additional Images (Optional — up to 10)
+                      Additional Images (Optional — scroll through on product page)
                     </label>
-                    <div onClick={() => extraImagesRef.current.click()}
-                      style={{ border: '2px dashed #dbeafe', borderRadius: 12, padding: '14px', textAlign: 'center', cursor: 'pointer', background: '#f8faff' }}>
+                    <div style={{ border: '2px dashed #dbeafe', borderRadius: 12, padding: '14px', background: '#f8faff' }}>
                       {extraPreviews.length > 0 ? (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           {extraPreviews.map((src, i) => (
-                            <img key={i} src={src} alt={`extra ${i}`}
-                              style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1.5px solid #dbeafe' }} />
+                            <div key={i} style={{ position: 'relative' }}>
+                              <img src={src} alt={`extra ${i}`}
+                                style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, border: '1.5px solid #dbeafe' }} />
+                              <button onClick={() => removeExtraImage(i)}
+                                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#dc2626', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                                ×
+                              </button>
+                            </div>
                           ))}
-                          <div style={{ width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eef4ff', borderRadius: 8, border: '2px dashed #1a56db', fontSize: 20, color: '#1a56db' }}>+</div>
+                          <div onClick={() => extraImagesRef.current.click()}
+                            style={{ width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eef4ff', borderRadius: 8, border: '2px dashed #1a56db', fontSize: 24, color: '#1a56db', cursor: 'pointer', fontWeight: 700 }}>+</div>
                         </div>
                       ) : (
-                        <div>
+                        <div onClick={() => extraImagesRef.current.click()} style={{ textAlign: 'center', cursor: 'pointer' }}>
                           <div style={{ fontSize: 24, marginBottom: 4 }}>🖼️</div>
                           <div style={{ fontSize: 12, color: '#6b7280' }}>Click to upload multiple images</div>
                         </div>
                       )}
                     </div>
-                    <input ref={extraImagesRef} type="file" accept="image/*" multiple onChange={handleExtraImages} style={{ display: 'none' }} />
+                    <input ref={extraImagesRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" multiple onChange={handleExtraImages} style={{ display: 'none' }} />
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
@@ -646,15 +580,25 @@ export default function AdminDashboard() {
                   <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Description</label>
                   <input style={inp} value={matForm.description} onChange={e => setMatForm({ ...matForm, description: e.target.value })} placeholder="Brief description" />
                 </div>
+
+                {/* Circle color only - no rectangle */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Circle Color</label>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 10 }}>
                     <input type="color" value={matForm.color} onChange={e => setMatForm({ ...matForm, color: e.target.value })}
-                      style={{ width: 48, height: 40, border: 'none', borderRadius: 8, cursor: 'pointer' }} />
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: matForm.color, border: '2px solid #dbeafe' }} />
-                    <span style={{ fontSize: 13, color: '#374151' }}>{matForm.color}</span>
+                      style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} id="colorPicker" />
+                    <div
+                      onClick={() => document.getElementById('colorPicker').click()}
+                      style={{ width: 52, height: 52, borderRadius: '50%', background: matForm.color, border: '3px solid #dbeafe', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform .2s' }}
+                      title="Click to change color"
+                    />
+                    <div>
+                      <div style={{ fontSize: 13, color: '#374151', fontWeight: 700 }}>{matForm.color}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Click circle to pick color</div>
+                    </div>
                   </div>
                 </div>
+
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button onClick={saveMaterial} style={btnPrimary}>{editingMaterial ? 'Update Material' : 'Add Material'}</button>
                   {editingMaterial && (
@@ -667,7 +611,8 @@ export default function AdminDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {materials.map(m => (
                   <div key={m._id} className="mat-row" style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: m.color, border: '2px solid #dbeafe', flexShrink: 0 }} />
+                    {/* Circle only */}
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: m.color, border: '2px solid #dbeafe', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 15 }}>{m.name}</span>
@@ -710,13 +655,28 @@ export default function AdminDashboard() {
                   {orders.map(o => (
                     <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
                       <div className="order-actions">
-                        <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
-                          style={{ background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                          📧 Msg
-                        </button>
-                        <button onClick={() => deleteOrder(o._id)} style={{ ...btnDanger, padding: '6px 10px', fontSize: 12 }}>
-                          🗑️ Del
-                        </button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
+                            style={{ background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                            📧 Msg
+                          </button>
+                          <button onClick={() => deleteOrder(o._id)} style={{ ...btnDanger, padding: '6px 10px', fontSize: 12 }}>
+                            🗑️ Del
+                          </button>
+                        </div>
+
+                        {/* Permanent message sent indicator from DB */}
+                        {o.messageSent?.sent && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#d1fae5', padding: '4px 10px', borderRadius: 8, marginTop: 6 }}>
+                            <span style={{ fontSize: 14 }}>✅</span>
+                            <div>
+                              <div style={{ fontSize: 11, color: '#065f46', fontWeight: 700 }}>Message sent</div>
+                              <div style={{ fontSize: 10, color: '#065f46' }}>
+                                {new Date(o.messageSent.sentAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="order-card-grid">
