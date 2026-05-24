@@ -575,16 +575,21 @@ export default function AdminDashboard() {
                   {orders.map(o => (
                     <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
                       <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }}>
-                        {/* CHANGED: Message button shows green tick if message was sent for this order */}
+                        {/* CHANGED: Message button shows Message ✓ style after sending */}
                         <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
                           style={{
-                            background: sentOrders.has(o._id) ? '#d1fae5' : '#eef4ff',
-                            color: sentOrders.has(o._id) ? '#065f46' : '#1a56db',
-                            border: sentOrders.has(o._id) ? '1.5px solid #6ee7b7' : '1.5px solid #dbeafe',
-                            borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                            cursor: 'pointer', fontFamily: "'Lato',sans-serif"
+                            background: '#fff',
+                            color: '#1a56db',
+                            border: sentOrders.has(o._id) ? '2px solid #1a56db' : '1.5px solid #dbeafe',
+                            borderRadius: 8,
+                            padding: sentOrders.has(o._id) ? '6px 16px' : '6px 12px',
+                            fontSize: sentOrders.has(o._id) ? 13 : 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontFamily: "'Lato',sans-serif",
+                            background: sentOrders.has(o._id) ? '#fff' : '#eef4ff',
                           }}>
-                          {sentOrders.has(o._id) ? '✔ Sent' : '📧 Message'}
+                          {sentOrders.has(o._id) ? 'Message ✓' : '📧 Message'}
                         </button>
                         <button onClick={() => deleteOrder(o._id)} style={{ ...btnDanger, padding: '6px 12px' }}>
                           🗑️ Delete
