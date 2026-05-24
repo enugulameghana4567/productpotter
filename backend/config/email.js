@@ -1,14 +1,17 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT),
+  host: 'smtp-relay.brevo.com',
+  port: 2525,
   secure: false,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS
   },
-  tls: { rejectUnauthorized: false }
+  tls: { rejectUnauthorized: false },
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 15000
 });
 
 transporter.verify((error) => {
@@ -19,7 +22,7 @@ transporter.verify((error) => {
   }
 });
 
-const sender = `"Potters Productions" <${process.env.SMTP_USER}>`;
+const sender = `"Potters Productions" <${process.env.ADMIN_EMAIL}>`;
 
 const sendWelcomeEmail = async (toEmail, name) => {
   console.log('📧 Sending welcome email to:', toEmail);
@@ -105,7 +108,9 @@ const sendContactNotification = async (name, email, message) => {
         <div style="background:#f0f4ff;padding:16px;border-radius:8px;border-left:4px solid #1a56db;">
           ${message}
         </div>
-        <p style="color:#999;font-size:12px;margin-top:20px;">Reply to this email to respond directly to ${name} at ${email}</p>
+        <p style="color:#999;font-size:12px;margin-top:20px;">
+          Reply to this email to respond directly to ${name} at ${email}
+        </p>
       </div>
     `
   });
@@ -126,7 +131,9 @@ const sendAdminMessage = async (toEmail, customerName, productName, message) => 
         </div>
         <div style="padding:40px;">
           <h2 style="color:#1a56db;">Dear ${customerName},</h2>
-          <p style="color:#333;font-size:14px;margin-bottom:8px;">Regarding your order: <strong>${productName}</strong></p>
+          <p style="color:#333;font-size:14px;margin-bottom:8px;">
+            Regarding your order: <strong>${productName}</strong>
+          </p>
           <div style="background:#eef4ff;border-radius:8px;padding:20px;margin:20px 0;border-left:4px solid #1a56db;">
             <p style="color:#333;line-height:1.8;margin:0;">${message}</p>
           </div>
