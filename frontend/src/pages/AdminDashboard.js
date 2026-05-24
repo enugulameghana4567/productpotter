@@ -43,8 +43,13 @@ export default function AdminDashboard() {
   const [messageOrder, setMessageOrder] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
-  // NEW: track which order IDs have had a message sent
-  const [sentOrders, setSentOrders] = useState(new Set());
+  // track which order IDs have had a message sent — persisted in localStorage
+  const [sentOrders, setSentOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sentOrders');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
 
   const fetchAll = () => {
     API.get('/products/all').then(r => setProducts(r.data)).catch(() => {});
@@ -211,8 +216,12 @@ export default function AdminDashboard() {
     setSendingMessage(true);
     try {
       await API.post(`/orders/${messageOrder._id}/message`, { message: messageText });
-      // NEW: mark this order as having a sent message
-      setSentOrders(prev => new Set([...prev, messageOrder._id]));
+      // mark this order as having a sent message and persist to localStorage
+      setSentOrders(prev => {
+        const updated = new Set([...prev, messageOrder._id]);
+        try { localStorage.setItem('sentOrders', JSON.stringify([...updated])); } catch {}
+        return updated;
+      });
       setMessageText('__SENT__');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send message.');
