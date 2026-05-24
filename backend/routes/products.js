@@ -28,16 +28,16 @@ router.get('/:id', auth, async (req, res) => {
 
 router.post('/', adminAuth, upload.fields([
   { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 10 },
   { name: 'video', maxCount: 1 }
 ]), async (req, res) => {
   try {
     const { name, description, bibleVerse, inspirationalSentence, colorDescription, designDescription, themeDescription, isVisible } = req.body;
-    if (!name || !description) {
-      return res.status(400).json({ message: 'Name and description are required.' });
-    }
-    if (!req.files?.image) {
-      return res.status(400).json({ message: 'Product image is required.' });
-    }
+    if (!name || !description) return res.status(400).json({ message: 'Name and description are required.' });
+    if (!req.files?.image) return res.status(400).json({ message: 'Product image is required.' });
+
+    const extraImages = req.files?.images ? req.files.images.map(f => f.filename) : [];
+
     const product = new Product({
       name, description,
       bibleVerse: bibleVerse || '',
@@ -46,6 +46,7 @@ router.post('/', adminAuth, upload.fields([
       designDescription: designDescription || '',
       themeDescription: themeDescription || '',
       image: req.files.image[0].filename,
+      images: extraImages,
       video: req.files?.video ? req.files.video[0].filename : '',
       isVisible: isVisible === 'false' ? false : true
     });
@@ -59,11 +60,13 @@ router.post('/', adminAuth, upload.fields([
 
 router.put('/:id', adminAuth, upload.fields([
   { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 10 },
   { name: 'video', maxCount: 1 }
 ]), async (req, res) => {
   try {
     const updates = { ...req.body };
     if (req.files?.image) updates.image = req.files.image[0].filename;
+    if (req.files?.images) updates.images = req.files.images.map(f => f.filename);
     if (req.files?.video) updates.video = req.files.video[0].filename;
     if (updates.isVisible !== undefined) {
       updates.isVisible = updates.isVisible === 'false' ? false : true;

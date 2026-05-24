@@ -16,21 +16,11 @@ router.post('/register', async (req, res) => {
     if (existing) return res.status(400).json({ message: 'Email already registered.' });
 
     const user = new User({
-      fullName,
-      email: email.toLowerCase(),
-      phone,
-      location,
-      country,
-      gender,
+      fullName, email: email.toLowerCase(),
+      phone, location, country, gender,
       password: password || 'customer_no_pass'
     });
     await user.save();
-
-    try {
-      await sendWelcomeEmail(email, fullName);
-    } catch (emailErr) {
-      console.error('Email error:', emailErr.message);
-    }
 
     const token = jwt.sign(
       { id: user._id, email: user.email, isAdmin: false },
@@ -38,6 +28,7 @@ router.post('/register', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Send response IMMEDIATELY - don't wait for email
     res.status(201).json({
       token,
       user: {
@@ -51,6 +42,12 @@ router.post('/register', async (req, res) => {
         isAdmin: false
       }
     });
+
+    // Send welcome email in background AFTER response
+    sendWelcomeEmail(email, fullName).catch(err =>
+      console.error('Welcome email error:', err.message)
+    );
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -70,10 +67,7 @@ router.post('/login/admin', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
-    res.json({
-      token,
-      user: { fullName: 'Admin', email, isAdmin: true }
-    });
+    res.json({ token, user: { fullName: 'Admin', email, isAdmin: true } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -83,20 +77,17 @@ router.post('/login/customer', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required.' });
-
     if (email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase()) {
       return res.status(403).json({ message: 'Please use admin login.' });
     }
-
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(404).json({ message: 'No account found with this email. Please register first.' });
+    if (!user) return res.status(404).json({ message: 'No account found. Please register first.' });
 
     const token = jwt.sign(
       { id: user._id, email: user.email, isAdmin: false },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
-
     res.json({
       token,
       user: {
