@@ -43,6 +43,8 @@ export default function AdminDashboard() {
   const [messageOrder, setMessageOrder] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  // NEW: track which order IDs have had a message sent
+  const [sentOrders, setSentOrders] = useState(new Set());
 
   const fetchAll = () => {
     API.get('/products/all').then(r => setProducts(r.data)).catch(() => {});
@@ -209,6 +211,8 @@ export default function AdminDashboard() {
     setSendingMessage(true);
     try {
       await API.post(`/orders/${messageOrder._id}/message`, { message: messageText });
+      // NEW: mark this order as having a sent message
+      setSentOrders(prev => new Set([...prev, messageOrder._id]));
       setMessageText('__SENT__');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send message.');
@@ -571,9 +575,16 @@ export default function AdminDashboard() {
                   {orders.map(o => (
                     <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
                       <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }}>
+                        {/* CHANGED: Message button shows green tick if message was sent for this order */}
                         <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
-                          style={{ background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                          📧 Message
+                          style={{
+                            background: sentOrders.has(o._id) ? '#d1fae5' : '#eef4ff',
+                            color: sentOrders.has(o._id) ? '#065f46' : '#1a56db',
+                            border: sentOrders.has(o._id) ? '1.5px solid #6ee7b7' : '1.5px solid #dbeafe',
+                            borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                            cursor: 'pointer', fontFamily: "'Lato',sans-serif"
+                          }}>
+                          {sentOrders.has(o._id) ? '✔ Sent' : '📧 Message'}
                         </button>
                         <button onClick={() => deleteOrder(o._id)} style={{ ...btnDanger, padding: '6px 12px' }}>
                           🗑️ Delete
