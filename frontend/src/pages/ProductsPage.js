@@ -10,28 +10,28 @@ const FIXED_PRODUCTS = [
     name: 'Faith Clipboard',
     bibleVerse: 'Matthew 19:26',
     description: 'A beautifully crafted clipboard with elegant floral design and the inspiring verse — With God all things are possible.',
-    image: '/images/product1.jpeg'
+    image: '/images/product4.jpeg'
   },
   {
     _id: 'default2',
     name: 'Rejoice Clipboard',
     bibleVerse: 'Philippians 4:4',
     description: 'Elegant dark green clipboard with silver lettering and botanical art.',
-    image: '/images/product2.jpeg'
+    image: '/images/product3.jpeg'
   },
   {
     _id: 'default3',
     name: 'Strength Clipboard',
     bibleVerse: 'Philippians 4:13',
     description: 'Light blue clipboard adorned with a delicate wildflower wreath.',
-    image: '/images/product3.jpeg'
+    image: '/images/product2.jpeg'
   },
   {
     _id: 'default4',
     name: 'Wisdom Clipboard',
     bibleVerse: 'Proverbs 1:7',
     description: 'Warm beige clipboard with golden botanical accents and the wisdom scripture.',
-    image: '/images/product4.jpeg'
+    image: '/images/product1.jpeg'
   }
 ];
 
