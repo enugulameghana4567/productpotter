@@ -1,19 +1,14 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 587,
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT),
   secure: false,
   auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   },
-  tls: {
-    rejectUnauthorized: false
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000
+  tls: { rejectUnauthorized: false }
 });
 
 transporter.verify((error) => {
@@ -24,7 +19,7 @@ transporter.verify((error) => {
   }
 });
 
-const sender = `"Potters Productions" <${process.env.BREVO_USER}>`;
+const sender = `"Potters Productions" <${process.env.SMTP_USER}>`;
 
 const sendWelcomeEmail = async (toEmail, name) => {
   console.log('📧 Sending welcome email to:', toEmail);
