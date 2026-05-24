@@ -3,6 +3,19 @@ const router = express.Router();
 const Product = require('../models/Product');
 const { auth, adminAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const fs = require('fs');
+const path = require('path');
+
+// Helper: convert file to base64 data URL
+const fileToBase64 = (filePath, mimetype) => {
+  try {
+    const data = fs.readFileSync(filePath);
+    return `data:${mimetype};base64,${data.toString('base64')}`;
+  } catch (err) {
+    console.error('base64 error:', err.message);
+    return '';
+  }
+};
 
 router.get('/', async (req, res) => {
   try {
@@ -32,11 +45,28 @@ router.post('/', adminAuth, upload.fields([
   { name: 'video', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { name, description, bibleVerse, inspirationalSentence, colorDescription, designDescription, themeDescription, isVisible } = req.body;
-    if (!name || !description) return res.status(400).json({ message: 'Name and description are required.' });
-    if (!req.files?.image) return res.status(400).json({ message: 'Product image is required.' });
+    const {
+      name, description, bibleVerse, inspirationalSentence,
+      colorDescription, designDescription, themeDescription, isVisible
+    } = req.body;
 
-    const extraImages = req.files?.images ? req.files.images.map(f => f.filename) : [];
+    if (!name || !description) {
+      return res.status(400).json({ message: 'Name and description are required.' });
+    }
+    if (!req.files?.image) {
+      return res.status(400).json({ message: 'Product image is required.' });
+    }
+
+    const mainFile = req.files.image[0];
+    const imageData = fileToBase64(mainFile.path, mainFile.mimetype);
+
+    const extraImagesData = req.files?.images
+      ? req.files.images.map(f => fileToBase64(f.path, f.mimetype))
+      : [];
+
+    const videoData = req.files?.video
+      ? fileToBase64(req.files.video[0].path, req.files.video[0].mimetype)
+      : '';
 
     const product = new Product({
       name, description,
@@ -45,11 +75,15 @@ router.post('/', adminAuth, upload.fields([
       colorDescription: colorDescription || '',
       designDescription: designDescription || '',
       themeDescription: themeDescription || '',
-      image: req.files.image[0].filename,
-      images: extraImages,
+      image: mainFile.filename,
+      imageData,
+      images: req.files?.images ? req.files.images.map(f => f.filename) : [],
+      imagesData: extraImagesData,
       video: req.files?.video ? req.files.video[0].filename : '',
+      videoData,
       isVisible: isVisible === 'false' ? false : true
     });
+
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -65,11 +99,22 @@ router.put('/:id', adminAuth, upload.fields([
 ]), async (req, res) => {
   try {
     const updates = { ...req.body };
-    if (req.files?.image) updates.image = req.files.image[0].filename;
-    if (req.files?.images) updates.images = req.files.images.map(f => f.filename);
-    if (req.files?.video) updates.video = req.files.video[0].filename;
     if (updates.isVisible !== undefined) {
       updates.isVisible = updates.isVisible === 'false' ? false : true;
+    }
+    if (req.files?.image) {
+      const f = req.files.image[0];
+      updates.image = f.filename;
+      updates.imageData = fileToBase64(f.path, f.mimetype);
+    }
+    if (req.files?.images) {
+      updates.images = req.files.images.map(f => f.filename);
+      updates.imagesData = req.files.images.map(f => fileToBase64(f.path, f.mimetype));
+    }
+    if (req.files?.video) {
+      const f = req.files.video[0];
+      updates.video = f.filename;
+      updates.videoData = fileToBase64(f.path, f.mimetype);
     }
     const product = await Product.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!product) return res.status(404).json({ message: 'Product not found' });
