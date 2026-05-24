@@ -6,7 +6,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [logoError, setLogoError] = useState(false);
+  const [logoLoaded, setLogoLoaded] = useState(true);
 
   const handleLogout = () => { logout(); navigate('/'); setMenuOpen(false); };
 
@@ -48,15 +48,16 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {!logoError ? (
+            {logoLoaded ? (
               <img
                 src="/logo.jpeg"
                 alt="Potters Productions"
                 style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: '2px solid #dbeafe' }}
-                onError={() => setLogoError(true)}
+                onError={() => setLogoLoaded(false)}
+                onLoad={() => setLogoLoaded(true)}
               />
             ) : (
-              <div style={{ width: 46, height: 46, borderRadius: '50%', background: '#1a56db', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 18, fontFamily: "'Playfair Display',serif" }}>P</div>
+              <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'linear-gradient(135deg,#1a56db,#0e3a8c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20, fontFamily: "'Playfair Display',serif", flexShrink: 0 }}>P</div>
             )}
             <div>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#1a56db', letterSpacing: 1, lineHeight: 1.2 }}>

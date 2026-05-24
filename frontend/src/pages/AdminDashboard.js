@@ -81,7 +81,6 @@ export default function AdminDashboard() {
     { id: 'contact', label: '📞 Contact' }
   ];
 
-  // ── Product handlers ──
   const openAdd = () => {
     setEditingProduct(null);
     setProductForm(EMPTY_PRODUCT);
@@ -170,7 +169,6 @@ export default function AdminDashboard() {
     catch { toast.error('Failed to delete product.'); }
   };
 
-  // ── Material handlers ──
   const openAddMat = () => { setEditingMaterial(null); setMatForm(EMPTY_MAT); };
   const openEditMat = m => {
     setEditingMaterial(m);
@@ -200,7 +198,6 @@ export default function AdminDashboard() {
     catch (err) { toast.error(err.response?.data?.message || 'Failed to delete.'); }
   };
 
-  // ── Order handlers ──
   const deleteOrder = async id => {
     if (!window.confirm('Delete this order?')) return;
     try { await API.delete(`/orders/${id}`); toast.success('Order deleted.'); fetchAll(); }
@@ -212,28 +209,25 @@ export default function AdminDashboard() {
     setSendingMessage(true);
     try {
       await API.post(`/orders/${messageOrder._id}/message`, { message: messageText });
-      toast.success(`Message sent to ${messageOrder.customer.email}!`);
-      setMessageOrder(null);
-      setMessageText('');
+      setMessageText('__SENT__');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send message.');
     }
     setSendingMessage(false);
   };
 
-  // ── Feedback handlers ──
   const toggleFeedback = async (id, approved) => {
     await API.put(`/feedback/${id}/approve`, { approved });
     toast.success(approved ? 'Feedback approved!' : 'Feedback hidden.');
     fetchAll();
   };
+
   const deleteFeedback = async id => {
     await API.delete(`/feedback/${id}`);
     toast.success('Feedback deleted.');
     fetchAll();
   };
 
-  // ── Settings ──
   const saveAbout = async () => { await API.put('/settings/about', { value: aboutText }); toast.success('About Us updated!'); };
   const saveContact = async () => { await API.put('/settings/contact', { value: contactInfo }); toast.success('Contact info updated!'); };
 
@@ -248,38 +242,56 @@ export default function AdminDashboard() {
       {messageOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 500, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 8 }}>Send Message to Customer</h3>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>
-              To: <strong>{messageOrder.customer.name}</strong> ({messageOrder.customer.email})<br />
-              Order: <strong>{messageOrder.product.name}</strong>
-            </p>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>From</label>
-              <input style={{ ...inp, background: '#f0f0f0', color: '#888' }} value="productpotter@gmail.com" readOnly />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>To</label>
-              <input style={{ ...inp, background: '#f0f0f0', color: '#888' }} value={messageOrder.customer.email} readOnly />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Message *</label>
-              <textarea
-                style={{ ...inp, height: 120, resize: 'vertical' }}
-                placeholder="Type your message to the customer..."
-                value={messageText}
-                onChange={e => setMessageText(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={sendMessage} disabled={sendingMessage}
-                style={{ ...btnPrimary, opacity: sendingMessage ? 0.7 : 1, flex: 1 }}>
-                {sendingMessage ? 'Sending...' : '📧 Send Message'}
-              </button>
-              <button onClick={() => { setMessageOrder(null); setMessageText(''); }}
-                style={{ ...btnEdit, background: '#f3f4f6', color: '#374151', border: 'none' }}>
-                Cancel
-              </button>
-            </div>
+            {messageText === '__SENT__' ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#10b981', marginTop: 0, marginBottom: 8 }}>Message Sent!</h3>
+                <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>
+                  Your message has been sent successfully to<br />
+                  <strong style={{ color: '#0e3a8c' }}>{messageOrder.customer.email}</strong>
+                </p>
+                <button
+                  onClick={() => { setMessageOrder(null); setMessageText(''); }}
+                  style={{ background: '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 32px', fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 15 }}>
+                  OK
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 8 }}>Send Message to Customer</h3>
+                <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>
+                  To: <strong>{messageOrder.customer.name}</strong> ({messageOrder.customer.email})<br />
+                  Order: <strong>{messageOrder.product.name}</strong>
+                </p>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>From</label>
+                  <input style={{ ...inp, background: '#f0f0f0', color: '#888' }} value="productpotter@gmail.com" readOnly />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>To</label>
+                  <input style={{ ...inp, background: '#f0f0f0', color: '#888' }} value={messageOrder.customer.email} readOnly />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Message *</label>
+                  <textarea
+                    style={{ ...inp, height: 120, resize: 'vertical' }}
+                    placeholder="Type your message to the customer..."
+                    value={messageText}
+                    onChange={e => setMessageText(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={sendMessage} disabled={sendingMessage}
+                    style={{ background: '#1a56db', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: sendingMessage ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 13, opacity: sendingMessage ? 0.7 : 1, flex: 1 }}>
+                    {sendingMessage ? '⏳ Sending...' : '📧 Send Message'}
+                  </button>
+                  <button onClick={() => { setMessageOrder(null); setMessageText(''); }}
+                    style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 13 }}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -354,7 +366,6 @@ export default function AdminDashboard() {
                     <textarea style={{ ...inp, height: 100, resize: 'vertical' }} value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} placeholder="Product description" />
                   </div>
 
-                  {/* Main Image + Video */}
                   <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>
@@ -395,10 +406,9 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Extra Images */}
                   <div style={{ marginTop: 16 }}>
                     <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>
-                      Additional Images (Optional — up to 10, all visible by scrolling)
+                      Additional Images (Optional — up to 10)
                     </label>
                     <div onClick={() => extraImagesRef.current.click()}
                       style={{ border: '2px dashed #dbeafe', borderRadius: 12, padding: '16px', textAlign: 'center', cursor: 'pointer', background: '#f8faff' }}>
@@ -414,7 +424,7 @@ export default function AdminDashboard() {
                         <div>
                           <div style={{ fontSize: 28, marginBottom: 6 }}>🖼️</div>
                           <div style={{ fontSize: 12, color: '#6b7280' }}>Click to upload multiple images</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Customer can scroll through all images on product page</div>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Customer can scroll through all images</div>
                         </div>
                       )}
                     </div>
@@ -442,11 +452,9 @@ export default function AdminDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 20 }}>
                   {products.map(p => (
                     <div key={p._id} style={cardStyle}>
-                      {/* Main image */}
                       <div style={{ height: 160, borderRadius: 10, overflow: 'hidden', background: '#eef4ff', marginBottom: 8 }}>
                         <img src={getImg(p)} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display = 'none'} />
                       </div>
-                      {/* Extra images thumbnails */}
                       {p.images && p.images.length > 0 && (
                         <div style={{ display: 'flex', gap: 4, marginBottom: 10, overflowX: 'auto', paddingBottom: 2 }}>
                           {p.images.map((img, i) => (
@@ -456,7 +464,6 @@ export default function AdminDashboard() {
                           ))}
                         </div>
                       )}
-                      {/* Video indicator */}
                       {p.video && (
                         <div style={{ fontSize: 11, color: '#1a56db', marginBottom: 8, fontWeight: 700 }}>🎥 Video attached</div>
                       )}
@@ -564,7 +571,7 @@ export default function AdminDashboard() {
                   {orders.map(o => (
                     <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
                       <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }}>
-                        <button onClick={() => setMessageOrder(o)}
+                        <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
                           style={{ background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
                           📧 Message
                         </button>
