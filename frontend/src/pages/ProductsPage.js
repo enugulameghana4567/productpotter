@@ -5,10 +5,10 @@ import API from '../utils/api';
 const IMG_BASE = process.env.REACT_APP_API_URL || '';
 
 const FIXED_PRODUCTS = [
-  { _id: 'default1', name: 'Faith Clipboard', bibleVerse: 'Matthew 19:26', description: 'A beautifully crafted clipboard with elegant floral design and the inspiring verse — With God all things are possible.', image: '/images/product1.jpeg', imageData: '' },
-  { _id: 'default2', name: 'Rejoice Clipboard', bibleVerse: 'Philippians 4:4', description: 'Elegant dark green clipboard with silver lettering and botanical art.', image: '/images/product2.jpeg', imageData: '' },
-  { _id: 'default3', name: 'Strength Clipboard', bibleVerse: 'Philippians 4:13', description: 'Light blue clipboard adorned with a delicate wildflower wreath.', image: '/images/product3.jpeg', imageData: '' },
-  { _id: 'default4', name: 'Wisdom Clipboard', bibleVerse: 'Proverbs 1:7', description: 'Warm beige clipboard with golden botanical accents and the wisdom scripture.', image: '/images/product4.jpeg', imageData: '' }
+  { _id: 'default1', name: 'Faith Clipboard', bibleVerse: 'Matthew 19:26', description: 'A beautifully crafted clipboard with elegant floral design and the inspiring verse — With God all things are possible.', image: '/images/product4.jpeg', imageData: '' },
+  { _id: 'default2', name: 'Rejoice Clipboard', bibleVerse: 'Philippians 4:4', description: 'Elegant dark green clipboard with silver lettering and botanical art.', image: '/images/product3.jpeg', imageData: '' },
+  { _id: 'default3', name: 'Strength Clipboard', bibleVerse: 'Philippians 4:13', description: 'Light blue clipboard adorned with a delicate wildflower wreath.', image: '/images/product2.jpeg', imageData: '' },
+  { _id: 'default4', name: 'Wisdom Clipboard', bibleVerse: 'Proverbs 1:7', description: 'Warm beige clipboard with golden botanical accents and the wisdom scripture.', image: '/images/product1.jpeg', imageData: '' }
 ];
 
 const getImgSrc = (p) => {

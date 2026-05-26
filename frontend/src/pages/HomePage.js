@@ -98,10 +98,10 @@ export default function HomePage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 28 }}>
             {[
-              { img: '/images/product1.jpeg', name: 'Faith Clipboard — Matthew 19:26', desc: 'A beautifully crafted clipboard with floral design and inspiring Bible verse.' },
-              { img: '/images/product2.jpeg', name: 'Rejoice Clipboard — Philippians 4:4', desc: 'Elegant dark green clipboard with silver lettering and botanical art.' },
-              { img: '/images/product3.jpeg', name: 'Strength Clipboard — Philippians 4:13', desc: 'Light blue clipboard adorned with a delicate wildflower wreath.' },
-              { img: '/images/product4.jpeg', name: 'Wisdom Clipboard — Proverbs 1:7', desc: 'Warm beige clipboard with golden botanical accents and scripture.' }
+              { img: '/images/product4.jpeg', name: 'Faith Clipboard — Matthew 19:26', desc: 'A beautifully crafted clipboard with floral design and inspiring Bible verse.' },
+              { img: '/images/product3.jpeg', name: 'Rejoice Clipboard — Philippians 4:4', desc: 'Elegant dark green clipboard with silver lettering and botanical art.' },
+              { img: '/images/product2.jpeg', name: 'Strength Clipboard — Philippians 4:13', desc: 'Light blue clipboard adorned with a delicate wildflower wreath.' },
+              { img: '/images/product1.jpeg', name: 'Wisdom Clipboard — Proverbs 1:7', desc: 'Warm beige clipboard with golden botanical accents and scripture.' }
             ].map((p, i) => (
               <div key={i} onClick={() => user ? navigate('/products') : navigate('/register')}
                 style={{ border: '1.5px solid #dbeafe', borderRadius: 16, overflow: 'hidden', cursor: 'pointer', transition: 'transform .2s,box-shadow .2s', background: '#fff' }}
