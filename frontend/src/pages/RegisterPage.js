@@ -18,8 +18,54 @@ export default function RegisterPage() {
     country: 'India', gender: '', password: '', confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [hasTriedAutoDetect, setHasTriedAutoDetect] = useState(false);
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
+
+  const detectLocation = () => {
+    if (hasTriedAutoDetect) return; // only auto-detect once
+    if (form.location.trim()) return; // don't override if already typed
+    if (!navigator.geolocation) return;
+
+    setHasTriedAutoDetect(true);
+    setDetectingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+
+          const road = addr.road || addr.pedestrian || addr.neighbourhood || '';
+          const suburb = addr.suburb || addr.locality || '';
+          const city = addr.city || addr.town || addr.village || addr.municipality || '';
+          const district = addr.state_district || addr.county || '';
+          const state = addr.state || '';
+          const pincode = addr.postcode || '';
+
+          const parts = [road, suburb, city, district, state, pincode].filter(Boolean);
+          const detected = parts.join(', ');
+
+          if (detected) {
+            set('location', detected);
+            toast.success('Location detected! Edit if needed.');
+          }
+        } catch (err) {
+          // silently fail - customer can type manually
+        }
+        setDetectingLocation(false);
+      },
+      () => {
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -49,14 +95,26 @@ export default function RegisterPage() {
           {[
             { label: 'Full Name', field: 'fullName', type: 'text', placeholder: 'Your full name' },
             { label: 'Email Address', field: 'email', type: 'email', placeholder: 'your@email.com' },
-            { label: 'Phone Number', field: 'phone', type: 'tel', placeholder: '+91 XXXXX XXXXX' },
-            { label: 'Location / City', field: 'location', type: 'text', placeholder: 'City, State' }
+            { label: 'Phone Number', field: 'phone', type: 'tel', placeholder: '+91 XXXXX XXXXX' }
           ].map(({ label, field, type, placeholder }) => (
             <div key={field} style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{label} *</label>
               <input style={inp} type={type} placeholder={placeholder} value={form[field]} onChange={e => set(field, e.target.value)} required />
             </div>
           ))}
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Location / City *</label>
+            <input
+              style={inp}
+              type="text"
+              placeholder={detectingLocation ? 'Detecting your location...' : 'City, State'}
+              value={form.location}
+              onFocus={detectLocation}
+              onChange={e => set('location', e.target.value)}
+              required
+            />
+          </div>
 
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Country *</label>
