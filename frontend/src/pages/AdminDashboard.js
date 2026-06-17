@@ -62,12 +62,14 @@ export default function AdminDashboard() {
   }, []);
 
   const getImg = p => {
+    if (p?.imageData && p.imageData.startsWith('data:')) return p.imageData;
     if (!p?.image) return '';
     if (p.image.startsWith('/images/') || p.image.startsWith('http')) return p.image;
     return `${IMG_BASE}/uploads/${p.image}`;
   };
 
   const getVideo = p => {
+    if (p?.videoData && p.videoData.startsWith('data:')) return p.videoData;
     if (!p?.video) return '';
     return `${IMG_BASE}/uploads/${p.video}`;
   };
@@ -106,7 +108,7 @@ export default function AdminDashboard() {
     setVideoFile(null);
     setVideoPreview(getVideo(p));
     setExtraFiles([]);
-    setExtraPreviews((p.images || []).map(img => `${IMG_BASE}/uploads/${img}`));
+    setExtraPreviews((p.images || []).map((img, i) => (p.imagesData && p.imagesData[i]) || `${IMG_BASE}/uploads/${img}`));
     setShowProductForm(true);
   };
 
@@ -138,10 +140,7 @@ export default function AdminDashboard() {
 
   const handleExtraImages = e => {
     const files = Array.from(e.target.files);
-    setExtraFiles(prev => {
-      const newFiles = [...prev, ...files];
-      return newFiles;
-    });
+    setExtraFiles(prev => [...prev, ...files]);
     const newPreviews = files.map(f => URL.createObjectURL(f));
     setExtraPreviews(prev => [...prev, ...newPreviews]);
   };
@@ -188,7 +187,6 @@ export default function AdminDashboard() {
       cancelProductForm();
       fetchAll();
     } catch (err) {
-      console.error('Save error:', err);
       toast.error(err.response?.data?.message || 'Failed to save product.');
     }
   };
@@ -240,7 +238,7 @@ export default function AdminDashboard() {
     try {
       await API.post(`/orders/${messageOrder._id}/message`, { message: messageText });
       setMessageText('__SENT__');
-      fetchAll(); // refresh to get updated messageSent from DB
+      fetchAll();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send message.');
     }
@@ -262,8 +260,6 @@ export default function AdminDashboard() {
   const saveAbout = async () => { await API.put('/settings/about', { value: aboutText }); toast.success('About Us updated!'); };
   const saveContact = async () => { await API.put('/settings/contact', { value: contactInfo }); toast.success('Contact info updated!'); };
 
-  const handleTabChange = (tabId) => { setActiveTab(tabId); };
-
   const btnPrimary = { background: '#1a56db', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 13 };
   const btnDanger = { background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
   const btnEdit = { background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
@@ -280,22 +276,40 @@ export default function AdminDashboard() {
         .order-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; padding-right: 140px; }
         .order-actions { position: absolute; top: 16px; right: 16px; display: flex; gap: 8px; flex-direction: column; align-items: flex-end; }
         .mat-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .section-header h2 { font-family: 'Playfair Display',serif; font-size: 22px; color: #0e3a8c; margin: 0; }
+
         @media (max-width: 768px) {
           .admin-sidebar { display: none !important; }
           .admin-body { flex-direction: column; }
-          .admin-content { padding: 12px; }
+          .admin-content { padding: 14px; }
+
+          .admin-header { padding: 16px !important; }
+          .admin-header-inner { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .admin-header h1 { font-size: 19px !important; line-height: 1.3 !important; }
+          .admin-header p { font-size: 12px !important; }
+          .admin-refresh-btn { width: 100%; justify-content: center; }
+
+          .admin-stats { gap: 0 !important; padding: 10px 8px !important; justify-content: space-between !important; }
+          .admin-stat-item { flex-direction: column !important; align-items: center !important; gap: 2px !important; min-width: auto !important; flex: 1; text-align: center; }
+          .admin-stat-item > span { font-size: 16px !important; }
+          .admin-stat-num { font-size: 16px !important; }
+          .admin-stat-label { font-size: 9px !important; }
+
           .mobile-tab-bar { display: flex; overflow-x: auto; background: #fff; border-bottom: 1.5px solid #dbeafe; padding: 0; gap: 0; -webkit-overflow-scrolling: touch; }
           .mobile-tab-bar::-webkit-scrollbar { display: none; }
-          .mobile-tab-btn { flex-shrink: 0; padding: 11px 12px; border: none; border-bottom: 3px solid transparent; background: transparent; cursor: pointer; font-size: 11px; font-weight: 700; font-family: 'Lato', sans-serif; color: #6b7280; white-space: nowrap; }
+          .mobile-tab-btn { flex-shrink: 0; padding: 10px 12px; border: none; border-bottom: 3px solid transparent; background: transparent; cursor: pointer; font-size: 11px; font-weight: 700; font-family: 'Lato', sans-serif; color: #6b7280; white-space: nowrap; }
           .mobile-tab-btn.active { color: #1a56db; border-bottom: 3px solid #1a56db; background: #eef4ff; }
+
+          .section-header { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+          .section-header h2 { font-size: 19px !important; text-align: left; }
+          .section-header button { width: 100%; text-align: center; }
+
           .product-form-grid { grid-template-columns: 1fr !important; }
           .image-video-grid { grid-template-columns: 1fr !important; }
           .order-card-grid { grid-template-columns: 1fr 1fr !important; padding-right: 0 !important; }
           .order-actions { position: static !important; flex-direction: row !important; margin-bottom: 12px; }
           .mat-price-grid { grid-template-columns: 1fr !important; }
-          .admin-stats { gap: 16px !important; padding: 12px 16px !important; }
-          .admin-header { padding: 16px !important; }
-          .admin-header h1 { font-size: 20px !important; }
           .mat-row { flex-wrap: wrap; gap: 10px !important; }
         }
       `}</style>
@@ -357,13 +371,13 @@ export default function AdminDashboard() {
 
       {/* Header */}
       <div className="admin-header" style={{ background: 'linear-gradient(135deg,#0e3a8c,#1a56db)', padding: '28px 32px', color: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="admin-header-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, margin: 0 }}>✦ Admin Dashboard</h1>
             <p style={{ color: '#b3d1ff', margin: '6px 0 0', fontSize: 14 }}>Potters Productions Management Panel</p>
           </div>
-          <button onClick={fetchAll}
-            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontFamily: "'Lato',sans-serif" }}>
+          <button onClick={fetchAll} className="admin-refresh-btn"
+            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontFamily: "'Lato',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
             🔄 Refresh
           </button>
         </div>
@@ -372,11 +386,11 @@ export default function AdminDashboard() {
       {/* Stats */}
       <div className="admin-stats" style={{ background: '#fff', borderBottom: '1.5px solid #dbeafe', padding: '16px 32px', display: 'flex', gap: 32, overflowX: 'auto' }}>
         {[['📦', products.length, 'Products'], ['🛒', orders.length, 'Orders'], ['💬', feedbacks.length, 'Feedbacks'], ['✅', feedbacks.filter(f => f.approved).length, 'Approved']].map(([icon, count, label]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 80 }}>
+          <div key={label} className="admin-stat-item" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 80 }}>
             <span style={{ fontSize: 20 }}>{icon}</span>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0e3a8c' }}>{count}</div>
-              <div style={{ fontSize: 11, color: '#6b7280' }}>{label}</div>
+              <div className="admin-stat-num" style={{ fontSize: 20, fontWeight: 700, color: '#0e3a8c' }}>{count}</div>
+              <div className="admin-stat-label" style={{ fontSize: 11, color: '#6b7280' }}>{label}</div>
             </div>
           </div>
         ))}
@@ -386,7 +400,7 @@ export default function AdminDashboard() {
       <div className="mobile-tab-bar">
         {tabs.map(t => (
           <button key={t.id} className={`mobile-tab-btn ${activeTab === t.id ? 'active' : ''}`}
-            onClick={() => handleTabChange(t.id)}>
+            onClick={() => setActiveTab(t.id)}>
             {t.label}
           </button>
         ))}
@@ -397,7 +411,7 @@ export default function AdminDashboard() {
         {/* Desktop Sidebar */}
         <div className="admin-sidebar">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => handleTabChange(t.id)}
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
               style={{ width: '100%', padding: '13px 24px', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 14, fontWeight: activeTab === t.id ? 700 : 400, fontFamily: "'Lato',sans-serif", background: activeTab === t.id ? '#eef4ff' : 'transparent', color: activeTab === t.id ? '#1a56db' : '#374151', borderLeft: activeTab === t.id ? '3px solid #1a56db' : '3px solid transparent', transition: 'all .15s' }}>
               {t.label}
             </button>
@@ -410,8 +424,8 @@ export default function AdminDashboard() {
           {/* ── PRODUCTS ── */}
           {activeTab === 'products' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#0e3a8c', margin: 0 }}>Manage Products</h2>
+              <div className="section-header">
+                <h2>Manage Products</h2>
                 <button onClick={openAdd} style={btnPrimary}>+ Add New Product</button>
               </div>
 
@@ -475,7 +489,6 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Extra Images - accumulate, can remove individual */}
                   <div style={{ marginTop: 14 }}>
                     <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 8 }}>
                       Additional Images (Optional — scroll through on product page)
@@ -533,7 +546,7 @@ export default function AdminDashboard() {
                       {p.images && p.images.length > 0 && (
                         <div style={{ display: 'flex', gap: 4, marginBottom: 8, overflowX: 'auto' }}>
                           {p.images.map((img, i) => (
-                            <img key={i} src={`${IMG_BASE}/uploads/${img}`} alt={`extra ${i}`}
+                            <img key={i} src={(p.imagesData && p.imagesData[i]) || `${IMG_BASE}/uploads/${img}`} alt={`extra ${i}`}
                               style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: '1.5px solid #dbeafe', flexShrink: 0 }}
                               onError={e => e.target.style.display = 'none'} />
                           ))}
@@ -557,8 +570,8 @@ export default function AdminDashboard() {
           {/* ── MATERIALS ── */}
           {activeTab === 'materials' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#0e3a8c', margin: 0 }}>Manage Materials & Prices</h2>
+              <div className="section-header">
+                <h2>Manage Materials & Prices</h2>
                 <button onClick={openAddMat} style={btnPrimary}>+ Add Material</button>
               </div>
 
@@ -581,7 +594,6 @@ export default function AdminDashboard() {
                   <input style={inp} value={matForm.description} onChange={e => setMatForm({ ...matForm, description: e.target.value })} placeholder="Brief description" />
                 </div>
 
-                {/* Circle color only - no rectangle */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Circle Color</label>
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 10 }}>
@@ -589,7 +601,7 @@ export default function AdminDashboard() {
                       style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} id="colorPicker" />
                     <div
                       onClick={() => document.getElementById('colorPicker').click()}
-                      style={{ width: 52, height: 52, borderRadius: '50%', background: matForm.color, border: '3px solid #dbeafe', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform .2s' }}
+                      style={{ width: 52, height: 52, borderRadius: '50%', background: matForm.color, border: '3px solid #dbeafe', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
                       title="Click to change color"
                     />
                     <div>
@@ -611,7 +623,6 @@ export default function AdminDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {materials.map(m => (
                   <div key={m._id} className="mat-row" style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
-                    {/* Circle only */}
                     <div style={{ width: 48, height: 48, borderRadius: '50%', background: m.color, border: '2px solid #dbeafe', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -637,8 +648,8 @@ export default function AdminDashboard() {
           {/* ── ORDERS ── */}
           {activeTab === 'orders' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#0e3a8c', margin: 0 }}>All Orders</h2>
+              <div className="section-header">
+                <h2>All Orders</h2>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <div style={{ fontSize: 13, color: '#6b7280' }}>Total: <strong style={{ color: '#0e3a8c' }}>{orders.length}</strong></div>
                   <button onClick={fetchAll} style={{ ...btnEdit, fontSize: 12 }}>🔄 Refresh</button>
@@ -665,7 +676,6 @@ export default function AdminDashboard() {
                           </button>
                         </div>
 
-                        {/* Permanent message sent indicator from DB */}
                         {o.messageSent?.sent && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#d1fae5', padding: '4px 10px', borderRadius: 8, marginTop: 6 }}>
                             <span style={{ fontSize: 14 }}>✅</span>
@@ -716,7 +726,7 @@ export default function AdminDashboard() {
           {/* ── FEEDBACK ── */}
           {activeTab === 'feedback' && (
             <div>
-              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#0e3a8c', marginBottom: 20 }}>Manage Feedback</h2>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, color: '#0e3a8c', marginBottom: 20 }}>Manage Feedback</h2>
               {feedbacks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px', background: '#fff', borderRadius: 16, color: '#6b7280', border: '1.5px solid #dbeafe' }}>
                   <p>No feedback submitted yet.</p>
@@ -755,7 +765,7 @@ export default function AdminDashboard() {
           {/* ── ABOUT US ── */}
           {activeTab === 'about' && (
             <div>
-              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#0e3a8c', marginBottom: 20 }}>Edit About Us</h2>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, color: '#0e3a8c', marginBottom: 20 }}>Edit About Us</h2>
               <div style={cardStyle}>
                 <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 10, marginTop: 0 }}>This text appears on the About Us page visible to all visitors.</p>
                 <textarea value={aboutText} onChange={e => setAboutText(e.target.value)}
@@ -769,7 +779,7 @@ export default function AdminDashboard() {
           {/* ── CONTACT ── */}
           {activeTab === 'contact' && (
             <div>
-              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, color: '#0e3a8c', marginBottom: 20 }}>Edit Contact Info</h2>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, color: '#0e3a8c', marginBottom: 20 }}>Edit Contact Info</h2>
               <div style={cardStyle}>
                 {[['Phone Number', 'phone', '📱', '+91 XXXXX XXXXX'], ['Email Address', 'email', '📧', 'productpotter@gmail.com'], ['WhatsApp Number', 'whatsapp', '💬', '+91 XXXXX XXXXX'], ['Instagram Handle', 'instagram', '📸', '@pottersproductions'], ['Business Address', 'address', '📍', 'City, State, India']].map(([label, field, icon, ph]) => (
                   <div key={field} style={{ marginBottom: 16 }}>
