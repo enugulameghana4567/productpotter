@@ -38,7 +38,7 @@ Thank you for supporting our vision and becoming part of this journey. Together,
             </p>
           ))}
           <blockquote style={{ borderLeft: '4px solid #1a56db', paddingLeft: 24, margin: '30px 0', color: '#1a56db', fontFamily: "'Playfair Display',serif", fontSize: 18, fontStyle: 'italic' }}>
-            "With God all things are possible." — Matthew 19:26
+            "Faith can move the mountains."
           </blockquote>
         </div>
 
