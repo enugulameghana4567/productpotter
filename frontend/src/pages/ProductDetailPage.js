@@ -13,7 +13,6 @@ const DEFAULT_PRODUCTS = {
   'default4': { _id: 'default4', name: 'Wisdom Clipboard', bibleVerse: 'Proverbs 1:7', inspirationalSentence: 'True wisdom begins when we place God first in everything.', description: 'Warm beige clipboard with golden botanical accents and the wisdom scripture — "The fear of the LORD is the beginning of knowledge." A timeless keepsake for any believer.', colorDescription: 'Warm beige/linen background with sage green and golden botanical accents.', designDescription: 'Elegant leafy botanical garlands with gold-tipped branches and earthy tones.', themeDescription: 'Wisdom and knowledge — a beautiful reminder to seek God above all things.', image: '/images/product1.jpeg', imageData: '', images: [], imagesData: [], video: '', videoData: '' }
 };
 
-// Get image src - prefer base64 (permanent) over file path
 const getImgSrc = (filename, dataUrl) => {
   if (dataUrl && dataUrl.startsWith('data:')) return dataUrl;
   if (!filename) return '';
@@ -30,6 +29,7 @@ export default function ProductDetailPage() {
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [booking, setBooking] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const defaultMaterials = [
     { _id: 'm1', name: 'Cardboard', description: 'Sturdy cardboard finish, lightweight and elegant. Eco-friendly and great for everyday use.', price: 300, color: '#8B5E3C' },
@@ -59,7 +59,6 @@ export default function ProductDetailPage() {
     <div style={{ textAlign: 'center', padding: '100px 20px', color: '#1a56db', fontSize: 20 }}>Loading...</div>
   );
 
-  // Build all media items using base64 data when available
   const allImages = [
     { src: getImgSrc(product.image, product.imageData), type: 'image' },
     ...((product.imagesData && product.imagesData.length > 0)
@@ -75,8 +74,13 @@ export default function ProductDetailPage() {
 
   const totalItems = allImages.length + (hasVideo ? 1 : 0);
 
-  const handleOrderBooking = async () => {
+  const confirmAndBook = () => {
     if (!selectedMaterial) return toast.error('Please select a material');
+    setShowConfirm(true);
+  };
+
+  const handleOrderBooking = async () => {
+    setShowConfirm(false);
     setBooking(true);
     try {
       const savedUser = localStorage.getItem('pp_user');
@@ -204,6 +208,40 @@ export default function ProductDetailPage() {
         }
       `}</style>
 
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>📦</div>
+            <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 10 }}>Confirm Your Order</h3>
+            <p style={{ color: '#374151', fontSize: 15, lineHeight: 1.7, marginBottom: 4 }}>
+              <strong>{product.name}</strong>
+            </p>
+            <div style={{ background: '#eef4ff', borderRadius: 12, padding: '14px 18px', margin: '14px 0 20px' }}>
+              <p style={{ margin: '0 0 6px 0', fontSize: 14, color: '#374151' }}>
+                Material: <strong style={{ color: '#0e3a8c' }}>{selectedMaterial?.name}</strong>
+              </p>
+              <p style={{ margin: 0, fontSize: 22, color: '#1a56db', fontWeight: 700, fontFamily: "'Playfair Display',serif" }}>
+                ₹{selectedMaterial?.price}
+              </p>
+            </div>
+            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 22 }}>
+              Are you sure you want to book this order?
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setShowConfirm(false)}
+                style={{ flex: 1, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                Cancel
+              </button>
+              <button onClick={handleOrderBooking}
+                style={{ flex: 1, background: '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                OK, Book It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px 60px' }}>
         <button onClick={() => navigate('/products')}
           style={{ background: 'none', border: 'none', color: '#1a56db', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 24, fontFamily: "'Lato',sans-serif", display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}>
@@ -214,7 +252,6 @@ export default function ProductDetailPage() {
 
           {/* LEFT: Media Gallery */}
           <div>
-            {/* Main display */}
             <div className="main-img-box">
               {activeIndex < allImages.length ? (
                 <img
@@ -237,7 +274,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Thumbnail row */}
             {totalItems > 1 && (
               <div className="thumb-scroll">
                 {allImages.map((item, i) => (
@@ -256,7 +292,6 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Dots */}
             {totalItems > 1 && (
               <div className="dot-row">
                 {Array.from({ length: totalItems }).map((_, i) => (
@@ -329,11 +364,11 @@ export default function ProductDetailPage() {
               <div style={{ fontSize: 36, fontWeight: 700, color: '#0e3a8c', fontFamily: "'Lato',sans-serif", lineHeight: 1 }}>
                 ₹{selectedMaterial?.price || '—'}
               </div>
-              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}></div>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Inclusive of All Taxes</div>
             </div>
 
-            {/* Order Button */}
-            <button onClick={handleOrderBooking} disabled={booking}
+            {/* Order Button - now opens confirmation modal */}
+            <button onClick={confirmAndBook} disabled={booking}
               style={{ width: '100%', background: booking ? '#93c5fd' : '#1a56db', color: '#fff', border: 'none', borderRadius: 14, padding: '16px', fontSize: 17, fontWeight: 700, cursor: booking ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif", boxShadow: '0 4px 20px rgba(26,86,219,0.25)', transition: 'background .2s', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxSizing: 'border-box' }}>
               <span>📦</span>
               <span>{booking ? 'Booking...' : 'Order Booking'}</span>
