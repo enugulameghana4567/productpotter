@@ -22,15 +22,10 @@ const getImgSrc = (filename, dataUrl) => {
   return `${IMG_BASE}/uploads/${filename}`;
 };
 
-// Build UPI deep link for a specific app
-const buildUpiUrl = (scheme, amount, note) => {
+// Universal UPI link - works with PhonePe, Google Pay, Paytm, BHIM (all register as handlers on Android)
+const buildUpiUrl = (amount, note) => {
   const params = `pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
-  switch (scheme) {
-    case 'phonepe': return `phonepe://pay?${params}`;
-    case 'gpay': return `tez://upi/pay?${params}`;
-    case 'paytm': return `paytmmp://pay?${params}`;
-    default: return `upi://pay?${params}`;
-  }
+  return `upi://pay?${params}`;
 };
 
 export default function ProductDetailPage() {
@@ -47,6 +42,7 @@ export default function ProductDetailPage() {
   const [modalStep, setModalStep] = useState('confirm'); // confirm -> pay -> awaiting
   const [createdOrderId, setCreatedOrderId] = useState(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const defaultMaterials = [
     { _id: 'm1', name: 'Cardboard', description: 'Sturdy cardboard finish, lightweight and elegant. Eco-friendly and great for everyday use.', price: 300, color: '#8B5E3C' },
@@ -101,17 +97,15 @@ export default function ProductDetailPage() {
     setShowConfirm(false);
     setModalStep('confirm');
     setCreatedOrderId(null);
+    setCopied(false);
   };
 
-  const proceedToPaymentStep = () => setModalStep('pay');
-
-  // Creates the order in DB (status: Initiated), then redirects to chosen UPI app
-  const handleChoosePayApp = async (scheme, appLabel) => {
+  const proceedToPaymentStep = async () => {
+    // Create the order first, then show the payment step
     setBooking(true);
     try {
       const savedUser = localStorage.getItem('pp_user');
       const fullUser = savedUser ? JSON.parse(savedUser) : user;
-      const note = `${product.name}-${selectedMaterial.name}`.replace(/\s+/g, '');
 
       const { data } = await API.post('/orders', {
         customer: {
@@ -126,18 +120,30 @@ export default function ProductDetailPage() {
           image: product.image || ''
         },
         material: { name: selectedMaterial.name, price: selectedMaterial.price },
-        payment: { method: appLabel }
+        payment: { method: 'UPI' }
       });
 
       setCreatedOrderId(data.order._id);
-      setModalStep('awaiting');
-
-      const upiUrl = buildUpiUrl(scheme, selectedMaterial.price, note);
-      window.location.href = upiUrl;
+      setModalStep('pay');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to start order. Please try again.');
     }
     setBooking(false);
+  };
+
+  const openUpiApp = () => {
+    const note = `${product.name}-${selectedMaterial.name}`.replace(/\s+/g, '');
+    const upiUrl = buildUpiUrl(selectedMaterial.price, note);
+    window.location.href = upiUrl;
+    // Move to awaiting step shortly after attempting to open the app
+    setTimeout(() => setModalStep('awaiting'), 600);
+  };
+
+  const copyUpiId = () => {
+    navigator.clipboard.writeText(UPI_ID).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handlePaymentConfirm = async () => {
@@ -232,25 +238,6 @@ export default function ProductDetailPage() {
           flex-wrap: wrap;
           margin-bottom: 16px;
         }
-        .pay-app-btn {
-          width: 100%;
-          text-align: left;
-          padding: 14px 18px;
-          border-radius: 12px;
-          border: 1.5px solid #dbeafe;
-          background: #f8faff;
-          cursor: pointer;
-          font-family: 'Lato',sans-serif;
-          font-size: 15px;
-          font-weight: 700;
-          color: #0e3a8c;
-          margin-bottom: 10px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          transition: background .15s, border-color .15s;
-        }
-        .pay-app-btn:hover { background: #eef4ff; border-color: #1a56db; }
         @media (max-width: 768px) {
           .detail-grid {
             grid-template-columns: 1fr !important;
@@ -303,39 +290,53 @@ export default function ProductDetailPage() {
                     style={{ flex: 1, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
                     Cancel
                   </button>
-                  <button onClick={proceedToPaymentStep}
-                    style={{ flex: 1, background: '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                    OK, Continue
+                  <button onClick={proceedToPaymentStep} disabled={booking}
+                    style={{ flex: 1, background: booking ? '#93c5fd' : '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: booking ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                    {booking ? 'Please wait...' : 'OK, Continue'}
                   </button>
                 </div>
               </>
             )}
 
-            {/* STEP 2: Choose payment app */}
+            {/* STEP 2: Pay via UPI */}
             {modalStep === 'pay' && (
               <>
                 <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 6 }}>Pay via UPI</h3>
                 <p style={{ color: '#1a56db', fontSize: 26, fontWeight: 700, fontFamily: "'Playfair Display',serif", margin: '6px 0 18px' }}>₹{selectedMaterial?.price}</p>
 
-                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('phonepe', 'PhonePe')}>
-                  <span style={{ fontSize: 20 }}>💜</span> Pay with PhonePe
-                </button>
-                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('gpay', 'Google Pay')}>
-                  <span style={{ fontSize: 20 }}>💙</span> Pay with Google Pay
-                </button>
-                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('paytm', 'Paytm')}>
-                  <span style={{ fontSize: 20 }}>💠</span> Pay with Paytm
-                </button>
-                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('generic', 'Other UPI App')}>
-                  <span style={{ fontSize: 20 }}>🏦</span> Other UPI App
+                <button onClick={openUpiApp}
+                  style={{ width: '100%', background: '#1a56db', color: '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                  📱 Open My UPI App to Pay
                 </button>
 
-                <p style={{ color: '#9ca3af', fontSize: 11, marginTop: 14, marginBottom: 16, lineHeight: 1.5 }}>
-                  📱 This works best on a mobile phone with a UPI app installed. The amount is pre-filled automatically.
+                <p style={{ color: '#6b7280', fontSize: 12, marginBottom: 16 }}>
+                  Works with PhonePe, Google Pay, Paytm, BHIM & others.<br/>
+                  Only works on a mobile phone with a UPI app installed.
                 </p>
-                <button onClick={() => setModalStep('confirm')}
-                  style={{ width: '100%', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                  ← Back
+
+                <div style={{ background: '#f8faff', border: '1.5px solid #dbeafe', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'left' }}>
+                  <p style={{ margin: '0 0 6px 0', fontSize: 11, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    App didn't open? Pay manually:
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontSize: 14, color: '#374151', fontWeight: 700, wordBreak: 'break-all' }}>{UPI_ID}</span>
+                    <button onClick={copyUpiId}
+                      style={{ flexShrink: 0, background: copied ? '#d1fae5' : '#eef4ff', color: copied ? '#065f46' : '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 7, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                      {copied ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <p style={{ margin: '8px 0 0 0', fontSize: 12, color: '#6b7280' }}>
+                    Open any UPI app → Send Money → paste this ID → enter ₹{selectedMaterial?.price}
+                  </p>
+                </div>
+
+                <button onClick={() => setModalStep('awaiting')}
+                  style={{ width: '100%', background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 10 }}>
+                  I've Paid →
+                </button>
+                <button onClick={closeModal}
+                  style={{ width: '100%', background: 'none', color: '#6b7280', border: 'none', padding: '8px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                  Cancel and close
                 </button>
               </>
             )}
@@ -352,6 +353,10 @@ export default function ProductDetailPage() {
                 <button onClick={handlePaymentConfirm} disabled={confirmingPayment}
                   style={{ width: '100%', background: confirmingPayment ? '#93c5fd' : '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: confirmingPayment ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 10 }}>
                   {confirmingPayment ? 'Updating...' : '✅ I\'ve Completed the Payment'}
+                </button>
+                <button onClick={() => setModalStep('pay')}
+                  style={{ width: '100%', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 8 }}>
+                  ← Back to payment options
                 </button>
                 <button onClick={closeModal}
                   style={{ width: '100%', background: 'none', color: '#6b7280', border: 'none', padding: '8px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
