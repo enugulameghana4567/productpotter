@@ -6,7 +6,7 @@ const { sendOrderConfirmation, sendAdminMessage } = require('../config/email');
 
 router.post('/', auth, async (req, res) => {
   try {
-    const { customer, product, material } = req.body;
+    const { customer, product, material, payment } = req.body;
     if (!customer || !product || !material) {
       return res.status(400).json({ message: 'Missing order details.' });
     }
@@ -30,7 +30,12 @@ router.post('/', auth, async (req, res) => {
         name: material.name,
         price: Number(material.price)
       },
-      status: 'Pending'
+      status: 'Pending',
+      payment: {
+        method: payment?.method || 'UPI',
+        status: 'Initiated',
+        initiatedAt: new Date()
+      }
     };
 
     const order = new Order(orderData);
@@ -76,7 +81,31 @@ router.put('/:id/status', adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// POST /api/orders/:id/message - save sent status to DB
+// Customer self-reports payment completion (NOT verified automatically)
+router.put('/:id/payment-confirm', auth, async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { 'payment.status': 'Customer Confirmed', 'payment.confirmedAt': new Date() },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Admin verifies actual payment received and updates status
+router.put('/:id/payment-status', adminAuth, async (req, res) => {
+  try {
+    const { status } = req.body; // 'Paid' | 'Failed' | 'Pending'
+    const update = { 'payment.status': status };
+    if (status === 'Paid') update['payment.verifiedAt'] = new Date();
+    const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post('/:id/message', adminAuth, async (req, res) => {
   try {
     const { message } = req.body;
@@ -90,7 +119,6 @@ router.post('/:id/message', adminAuth, async (req, res) => {
       message
     );
 
-    // Save message sent info permanently in database
     await Order.findByIdAndUpdate(req.params.id, {
       messageSent: {
         sent: true,
