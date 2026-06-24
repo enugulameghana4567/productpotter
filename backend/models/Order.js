@@ -25,6 +25,17 @@ const orderSchema = new mongoose.Schema({
     sent: { type: Boolean, default: false },
     sentAt: { type: Date },
     preview: { type: String }
+  },
+  payment: {
+    method: { type: String, default: 'UPI' },
+    status: {
+      type: String,
+      default: 'Pending',
+      enum: ['Pending', 'Initiated', 'Customer Confirmed', 'Paid', 'Failed']
+    },
+    initiatedAt: { type: Date },
+    confirmedAt: { type: Date },
+    verifiedAt: { type: Date }
   }
 }, { timestamps: true });
 
