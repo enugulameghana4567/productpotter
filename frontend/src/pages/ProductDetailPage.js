@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import API from '../utils/api';
 
 const IMG_BASE = process.env.REACT_APP_API_URL || '';
+const UPI_ID = process.env.REACT_APP_UPI_ID || 'productpotter@upi';
+const UPI_NAME = process.env.REACT_APP_UPI_NAME || 'Potters Productions';
 
 const DEFAULT_PRODUCTS = {
   'default1': { _id: 'default1', name: 'Faith Clipboard', bibleVerse: 'Matthew 19:26', inspirationalSentence: 'With God, nothing is impossible — trust the journey.', description: 'A beautifully crafted clipboard with elegant floral design and the inspiring verse — "With God all things are possible." Perfect for your desk or as a meaningful gift to someone you love.', colorDescription: 'Warm grey background with white floral outlines and peach botanicals.', designDescription: 'Watercolor botanical art with delicate flowers, leaves, and gold accents.', themeDescription: 'Faith and hope — a reminder that God makes all things possible.', image: '/images/product4.jpeg', imageData: '', images: [], imagesData: [], video: '', videoData: '' },
@@ -20,6 +22,17 @@ const getImgSrc = (filename, dataUrl) => {
   return `${IMG_BASE}/uploads/${filename}`;
 };
 
+// Build UPI deep link for a specific app
+const buildUpiUrl = (scheme, amount, note) => {
+  const params = `pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+  switch (scheme) {
+    case 'phonepe': return `phonepe://pay?${params}`;
+    case 'gpay': return `tez://upi/pay?${params}`;
+    case 'paytm': return `paytmmp://pay?${params}`;
+    default: return `upi://pay?${params}`;
+  }
+};
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,7 +42,11 @@ export default function ProductDetailPage() {
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [booking, setBooking] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+
   const [showConfirm, setShowConfirm] = useState(false);
+  const [modalStep, setModalStep] = useState('confirm'); // confirm -> pay -> awaiting
+  const [createdOrderId, setCreatedOrderId] = useState(null);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   const defaultMaterials = [
     { _id: 'm1', name: 'Cardboard', description: 'Sturdy cardboard finish, lightweight and elegant. Eco-friendly and great for everyday use.', price: 300, color: '#8B5E3C' },
@@ -74,18 +91,29 @@ export default function ProductDetailPage() {
 
   const totalItems = allImages.length + (hasVideo ? 1 : 0);
 
-  const confirmAndBook = () => {
+  const openConfirm = () => {
     if (!selectedMaterial) return toast.error('Please select a material');
+    setModalStep('confirm');
     setShowConfirm(true);
   };
 
-  const handleOrderBooking = async () => {
+  const closeModal = () => {
     setShowConfirm(false);
+    setModalStep('confirm');
+    setCreatedOrderId(null);
+  };
+
+  const proceedToPaymentStep = () => setModalStep('pay');
+
+  // Creates the order in DB (status: Initiated), then redirects to chosen UPI app
+  const handleChoosePayApp = async (scheme, appLabel) => {
     setBooking(true);
     try {
       const savedUser = localStorage.getItem('pp_user');
       const fullUser = savedUser ? JSON.parse(savedUser) : user;
-      await API.post('/orders', {
+      const note = `${product.name}-${selectedMaterial.name}`.replace(/\s+/g, '');
+
+      const { data } = await API.post('/orders', {
         customer: {
           name: fullUser.fullName || fullUser.name || 'Customer',
           email: fullUser.email || user.email,
@@ -97,13 +125,32 @@ export default function ProductDetailPage() {
           description: product.description,
           image: product.image || ''
         },
-        material: { name: selectedMaterial.name, price: selectedMaterial.price }
+        material: { name: selectedMaterial.name, price: selectedMaterial.price },
+        payment: { method: appLabel }
       });
-      toast.success('Order booked successfully! Check your email for confirmation. 🎉');
+
+      setCreatedOrderId(data.order._id);
+      setModalStep('awaiting');
+
+      const upiUrl = buildUpiUrl(scheme, selectedMaterial.price, note);
+      window.location.href = upiUrl;
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to book order. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to start order. Please try again.');
     }
     setBooking(false);
+  };
+
+  const handlePaymentConfirm = async () => {
+    if (!createdOrderId) return;
+    setConfirmingPayment(true);
+    try {
+      await API.put(`/orders/${createdOrderId}/payment-confirm`);
+      toast.success('Thank you! We will verify your payment and confirm your order shortly. 🙏');
+      closeModal();
+    } catch (err) {
+      toast.error('Could not update. If payment was completed, please contact us.');
+    }
+    setConfirmingPayment(false);
   };
 
   return (
@@ -185,6 +232,25 @@ export default function ProductDetailPage() {
           flex-wrap: wrap;
           margin-bottom: 16px;
         }
+        .pay-app-btn {
+          width: 100%;
+          text-align: left;
+          padding: 14px 18px;
+          border-radius: 12px;
+          border: 1.5px solid #dbeafe;
+          background: #f8faff;
+          cursor: pointer;
+          font-family: 'Lato',sans-serif;
+          font-size: 15px;
+          font-weight: 700;
+          color: #0e3a8c;
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          transition: background .15s, border-color .15s;
+        }
+        .pay-app-btn:hover { background: #eef4ff; border-color: #1a56db; }
         @media (max-width: 768px) {
           .detail-grid {
             grid-template-columns: 1fr !important;
@@ -208,36 +274,92 @@ export default function ProductDetailPage() {
         }
       `}</style>
 
-      {/* Confirmation Modal */}
+      {/* Order / Payment Modal */}
       {showConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>📦</div>
-            <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 10 }}>Confirm Your Order</h3>
-            <p style={{ color: '#374151', fontSize: 15, lineHeight: 1.7, marginBottom: 4 }}>
-              <strong>{product.name}</strong>
-            </p>
-            <div style={{ background: '#eef4ff', borderRadius: 12, padding: '14px 18px', margin: '14px 0 20px' }}>
-              <p style={{ margin: '0 0 6px 0', fontSize: 14, color: '#374151' }}>
-                Material: <strong style={{ color: '#0e3a8c' }}>{selectedMaterial?.name}</strong>
-              </p>
-              <p style={{ margin: 0, fontSize: 22, color: '#1a56db', fontWeight: 700, fontFamily: "'Playfair Display',serif" }}>
-                ₹{selectedMaterial?.price}
-              </p>
-            </div>
-            <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 22 }}>
-              Are you sure you want to book this order?
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setShowConfirm(false)}
-                style={{ flex: 1, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                Cancel
-              </button>
-              <button onClick={handleOrderBooking}
-                style={{ flex: 1, background: '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                OK, Book It
-              </button>
-            </div>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 440, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+
+            {/* STEP 1: Confirm details */}
+            {modalStep === 'confirm' && (
+              <>
+                <div style={{ fontSize: 44, marginBottom: 12 }}>📦</div>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 10 }}>Confirm Your Order</h3>
+                <p style={{ color: '#374151', fontSize: 15, lineHeight: 1.7, marginBottom: 4 }}>
+                  <strong>{product.name}</strong>
+                </p>
+                <div style={{ background: '#eef4ff', borderRadius: 12, padding: '14px 18px', margin: '14px 0 20px' }}>
+                  <p style={{ margin: '0 0 6px 0', fontSize: 14, color: '#374151' }}>
+                    Material: <strong style={{ color: '#0e3a8c' }}>{selectedMaterial?.name}</strong>
+                  </p>
+                  <p style={{ margin: 0, fontSize: 22, color: '#1a56db', fontWeight: 700, fontFamily: "'Playfair Display',serif" }}>
+                    ₹{selectedMaterial?.price}
+                  </p>
+                </div>
+                <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 22 }}>
+                  Are you sure you want to book this order?
+                </p>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={closeModal}
+                    style={{ flex: 1, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                    Cancel
+                  </button>
+                  <button onClick={proceedToPaymentStep}
+                    style={{ flex: 1, background: '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                    OK, Continue
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* STEP 2: Choose payment app */}
+            {modalStep === 'pay' && (
+              <>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 6 }}>Pay via UPI</h3>
+                <p style={{ color: '#1a56db', fontSize: 26, fontWeight: 700, fontFamily: "'Playfair Display',serif", margin: '6px 0 18px' }}>₹{selectedMaterial?.price}</p>
+
+                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('phonepe', 'PhonePe')}>
+                  <span style={{ fontSize: 20 }}>💜</span> Pay with PhonePe
+                </button>
+                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('gpay', 'Google Pay')}>
+                  <span style={{ fontSize: 20 }}>💙</span> Pay with Google Pay
+                </button>
+                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('paytm', 'Paytm')}>
+                  <span style={{ fontSize: 20 }}>💠</span> Pay with Paytm
+                </button>
+                <button className="pay-app-btn" disabled={booking} onClick={() => handleChoosePayApp('generic', 'Other UPI App')}>
+                  <span style={{ fontSize: 20 }}>🏦</span> Other UPI App
+                </button>
+
+                <p style={{ color: '#9ca3af', fontSize: 11, marginTop: 14, marginBottom: 16, lineHeight: 1.5 }}>
+                  📱 This works best on a mobile phone with a UPI app installed. The amount is pre-filled automatically.
+                </p>
+                <button onClick={() => setModalStep('confirm')}
+                  style={{ width: '100%', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                  ← Back
+                </button>
+              </>
+            )}
+
+            {/* STEP 3: Awaiting payment confirmation */}
+            {modalStep === 'awaiting' && (
+              <>
+                <div style={{ fontSize: 44, marginBottom: 12 }}>⏳</div>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 10 }}>Almost There!</h3>
+                <p style={{ color: '#374151', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
+                  We've recorded your order for <strong>{product.name}</strong> — ₹{selectedMaterial?.price}.
+                  Please complete the payment in your UPI app. Once done, tap the button below.
+                </p>
+                <button onClick={handlePaymentConfirm} disabled={confirmingPayment}
+                  style={{ width: '100%', background: confirmingPayment ? '#93c5fd' : '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: confirmingPayment ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 10 }}>
+                  {confirmingPayment ? 'Updating...' : '✅ I\'ve Completed the Payment'}
+                </button>
+                <button onClick={closeModal}
+                  style={{ width: '100%', background: 'none', color: '#6b7280', border: 'none', padding: '8px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                  Close
+                </button>
+              </>
+            )}
+
           </div>
         </div>
       )}
@@ -367,8 +489,8 @@ export default function ProductDetailPage() {
               <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Inclusive of All Taxes</div>
             </div>
 
-            {/* Order Button - now opens confirmation modal */}
-            <button onClick={confirmAndBook} disabled={booking}
+            {/* Order Button */}
+            <button onClick={openConfirm} disabled={booking}
               style={{ width: '100%', background: booking ? '#93c5fd' : '#1a56db', color: '#fff', border: 'none', borderRadius: 14, padding: '16px', fontSize: 17, fontWeight: 700, cursor: booking ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif", boxShadow: '0 4px 20px rgba(26,86,219,0.25)', transition: 'background .2s', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxSizing: 'border-box' }}>
               <span>📦</span>
               <span>{booking ? 'Booking...' : 'Order Booking'}</span>
