@@ -245,6 +245,17 @@ export default function AdminDashboard() {
     setSendingMessage(false);
   };
 
+  // NEW: admin verifies UPI payment manually
+  const updatePaymentStatus = async (orderId, status) => {
+    try {
+      await API.put(`/orders/${orderId}/payment-status`, { status });
+      toast.success(`Payment marked as ${status}.`);
+      fetchAll();
+    } catch (err) {
+      toast.error('Failed to update payment status.');
+    }
+  };
+
   const toggleFeedback = async (id, approved) => {
     await API.put(`/feedback/${id}/approve`, { approved });
     toast.success(approved ? 'Feedback approved!' : 'Feedback hidden.');
@@ -263,6 +274,18 @@ export default function AdminDashboard() {
   const btnPrimary = { background: '#1a56db', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 13 };
   const btnDanger = { background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
   const btnEdit = { background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 7, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" };
+
+  // payment badge styling helper
+  const paymentBadgeStyle = (status) => {
+    const map = {
+      'Pending': { bg: '#f3f4f6', color: '#6b7280' },
+      'Initiated': { bg: '#dbeafe', color: '#1e40af' },
+      'Customer Confirmed': { bg: '#fef3c7', color: '#92400e' },
+      'Paid': { bg: '#d1fae5', color: '#065f46' },
+      'Failed': { bg: '#fee2e2', color: '#dc2626' }
+    };
+    return map[status] || map['Pending'];
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8faff' }}>
@@ -663,61 +686,87 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {orders.map(o => (
-                    <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
-                      <div className="order-actions">
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
-                            style={{ background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                            📧 Msg
-                          </button>
-                          <button onClick={() => deleteOrder(o._id)} style={{ ...btnDanger, padding: '6px 10px', fontSize: 12 }}>
-                            🗑️ Del
-                          </button>
-                        </div>
+                  {orders.map(o => {
+                    const payStatus = o.payment?.status || 'Pending';
+                    const payBadge = paymentBadgeStyle(payStatus);
+                    return (
+                      <div key={o._id} style={{ ...cardStyle, position: 'relative' }}>
+                        <div className="order-actions">
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => { setMessageOrder(o); setMessageText(''); }}
+                              style={{ background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                              📧 Msg
+                            </button>
+                            <button onClick={() => deleteOrder(o._id)} style={{ ...btnDanger, padding: '6px 10px', fontSize: 12 }}>
+                              🗑️ Del
+                            </button>
+                          </div>
 
-                        {o.messageSent?.sent && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#d1fae5', padding: '4px 10px', borderRadius: 8, marginTop: 6 }}>
-                            <span style={{ fontSize: 14 }}>✅</span>
-                            <div>
-                              <div style={{ fontSize: 11, color: '#065f46', fontWeight: 700 }}>Message sent</div>
-                              <div style={{ fontSize: 10, color: '#065f46' }}>
-                                {new Date(o.messageSent.sentAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {o.messageSent?.sent && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#d1fae5', padding: '4px 10px', borderRadius: 8, marginTop: 6 }}>
+                              <span style={{ fontSize: 14 }}>✅</span>
+                              <div>
+                                <div style={{ fontSize: 11, color: '#065f46', fontWeight: 700 }}>Message sent</div>
+                                <div style={{ fontSize: 10, color: '#065f46' }}>
+                                  {new Date(o.messageSent.sentAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
 
-                      <div className="order-card-grid">
-                        <div>
-                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Customer</div>
-                          <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 14, marginBottom: 3 }}>👤 {o.customer?.name}</div>
-                          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2, wordBreak: 'break-all' }}>📧 {o.customer?.email}</div>
-                          <div style={{ fontSize: 12, color: '#6b7280' }}>📱 {o.customer?.phone || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Product</div>
-                          <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 14, marginBottom: 3 }}>{o.product?.name}</div>
-                          <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>{o.product?.description?.slice(0, 50)}...</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Material</div>
-                          <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 14, marginBottom: 4 }}>{o.material?.name}</div>
-                          <div style={{ fontSize: 22, color: '#1a56db', fontWeight: 700, fontFamily: "'Playfair Display',serif" }}>₹{o.material?.price}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Date</div>
-                          <div style={{ fontSize: 13, color: '#374151', marginBottom: 8 }}>
-                            📅 {new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <div className="order-card-grid">
+                          <div>
+                            <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Customer</div>
+                            <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 14, marginBottom: 3 }}>👤 {o.customer?.name}</div>
+                            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2, wordBreak: 'break-all' }}>📧 {o.customer?.email}</div>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>📱 {o.customer?.phone || 'N/A'}</div>
                           </div>
-                          <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: o.status === 'Pending' ? '#fef3c7' : o.status === 'Processing' ? '#dbeafe' : o.status === 'Delivered' ? '#d1fae5' : '#fee2e2', color: o.status === 'Pending' ? '#92400e' : o.status === 'Processing' ? '#1e40af' : o.status === 'Delivered' ? '#065f46' : '#dc2626' }}>
-                            {o.status}
-                          </span>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Product</div>
+                            <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 14, marginBottom: 3 }}>{o.product?.name}</div>
+                            <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>{o.product?.description?.slice(0, 50)}...</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Material</div>
+                            <div style={{ fontWeight: 700, color: '#0e3a8c', fontSize: 14, marginBottom: 4 }}>{o.material?.name}</div>
+                            <div style={{ fontSize: 22, color: '#1a56db', fontWeight: 700, fontFamily: "'Playfair Display',serif" }}>₹{o.material?.price}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>Date</div>
+                            <div style={{ fontSize: 13, color: '#374151', marginBottom: 8 }}>
+                              📅 {new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </div>
+                            <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: o.status === 'Pending' ? '#fef3c7' : o.status === 'Processing' ? '#dbeafe' : o.status === 'Delivered' ? '#d1fae5' : '#fee2e2', color: o.status === 'Pending' ? '#92400e' : o.status === 'Processing' ? '#1e40af' : o.status === 'Delivered' ? '#065f46' : '#dc2626' }}>
+                              {o.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* NEW: Payment verification row */}
+                        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1.5px solid #eef4ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 11, color: '#1a56db', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>Payment:</span>
+                            <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: payBadge.bg, color: payBadge.color }}>
+                              {payStatus} {o.payment?.method ? `(${o.payment.method})` : ''}
+                            </span>
+                          </div>
+                          {payStatus !== 'Paid' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button onClick={() => updatePaymentStatus(o._id, 'Paid')}
+                                style={{ background: '#d1fae5', color: '#065f46', border: '1.5px solid #a7f3d0', borderRadius: 7, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                                ✅ Mark Paid
+                              </button>
+                              <button onClick={() => updatePaymentStatus(o._id, 'Failed')}
+                                style={{ ...btnDanger, padding: '6px 12px', fontSize: 12 }}>
+                                ❌ Mark Failed
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
