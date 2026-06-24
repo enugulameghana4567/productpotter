@@ -130,14 +130,24 @@ export default function ProductDetailPage() {
     }
     setBooking(false);
   };
-
-  const openUpiApp = () => {
+const openUpiApp = () => {
+  try {
     const note = `${product.name}-${selectedMaterial.name}`.replace(/\s+/g, '');
     const upiUrl = buildUpiUrl(selectedMaterial.price, note);
-    window.location.href = upiUrl;
-    // Move to awaiting step shortly after attempting to open the app
-    setTimeout(() => setModalStep('awaiting'), 600);
-  };
+
+    console.log('UPI URL:', upiUrl);
+
+    window.location.assign(upiUrl);
+
+    setTimeout(() => {
+      setModalStep('awaiting');
+    }, 1000);
+
+  } catch (error) {
+    console.error('UPI Error:', error);
+    toast.error('Unable to open UPI app.');
+  }
+};
 
   const copyUpiId = () => {
     navigator.clipboard.writeText(UPI_ID).then(() => {
