@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import API from '../utils/api';
 
 const IMG_BASE = process.env.REACT_APP_API_URL || '';
-const UPI_ID = process.env.REACT_APP_UPI_ID || 'productpotter@upi';
+const UPI_ID = process.env.REACT_APP_UPI_ID || '9000841106-2@ybl';
 const UPI_NAME = process.env.REACT_APP_UPI_NAME || 'Potters Productions';
 
 const DEFAULT_PRODUCTS = {
