@@ -93,7 +93,7 @@ export default function ProductsPage() {
       <section style={{ maxWidth: 1100, margin: '50px auto', padding: '0 20px' }}>
         <div className="pp-revenue-banner">
           <div className="pp-revenue-img">
-            <img src="/images/product4.jpeg" alt="Handcrafted clipboard" />
+            <img src="/images/product5.png" alt="Handcrafted clipboard" />
           </div>
           <div className="pp-revenue-text">
             <p className="pp-revenue-label">✦ Giving Back</p>
