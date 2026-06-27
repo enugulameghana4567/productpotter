@@ -22,11 +22,15 @@ const getImgSrc = (filename, dataUrl) => {
   return `${IMG_BASE}/uploads/${filename}`;
 };
 
-// Universal UPI link - works with PhonePe, Google Pay, Paytm, BHIM (all register as handlers on Android)
+const isMobileDevice = () => /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 const buildUpiUrl = (amount, note) => {
   const params = `pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
   return `upi://pay?${params}`;
 };
+
+const buildQrImageUrl = (upiUrl) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiUrl)}`;
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -39,10 +43,8 @@ export default function ProductDetailPage() {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [modalStep, setModalStep] = useState('confirm'); // confirm -> pay -> awaiting
-  const [createdOrderId, setCreatedOrderId] = useState(null);
-  const [confirmingPayment, setConfirmingPayment] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [modalStep, setModalStep] = useState('confirm'); // confirm -> qr (desktop only)
+  const [qrUrl, setQrUrl] = useState('');
 
   const defaultMaterials = [
     { _id: 'm1', name: 'Cardboard', description: 'Sturdy cardboard finish, lightweight and elegant. Eco-friendly and great for everyday use.', price: 300, color: '#8B5E3C' },
@@ -68,6 +70,16 @@ export default function ProductDetailPage() {
       .catch(() => { setMaterials(defaultMaterials); setSelectedMaterial(defaultMaterials[0]); });
   }, [id]);
 
+  // Auto-resume booking after the customer returns from Login/Register
+  useEffect(() => {
+    const pendingId = sessionStorage.getItem('pp_pending_product');
+    if (user && pendingId && pendingId === id && product && selectedMaterial) {
+      sessionStorage.removeItem('pp_pending_product');
+      setModalStep('confirm');
+      setShowConfirm(true);
+    }
+  }, [user, product, selectedMaterial, id]);
+
   if (!product) return (
     <div style={{ textAlign: 'center', padding: '100px 20px', color: '#1a56db', fontSize: 20 }}>Loading...</div>
   );
@@ -89,6 +101,11 @@ export default function ProductDetailPage() {
 
   const openConfirm = () => {
     if (!selectedMaterial) return toast.error('Please select a material');
+    if (!user) {
+      sessionStorage.setItem('pp_pending_product', id);
+      navigate('/login', { state: { from: `/products/${id}` } });
+      return;
+    }
     setModalStep('confirm');
     setShowConfirm(true);
   };
@@ -96,12 +113,10 @@ export default function ProductDetailPage() {
   const closeModal = () => {
     setShowConfirm(false);
     setModalStep('confirm');
-    setCreatedOrderId(null);
-    setCopied(false);
+    setQrUrl('');
   };
 
   const proceedToPaymentStep = async () => {
-    // Create the order first, then show the payment step
     setBooking(true);
     try {
       const savedUser = localStorage.getItem('pp_user');
@@ -123,158 +138,56 @@ export default function ProductDetailPage() {
         payment: { method: 'UPI' }
       });
 
-      setCreatedOrderId(data.order._id);
-      setModalStep('pay');
+      // Order is now in MongoDB and visible in Admin Dashboard immediately — no extra step needed.
+      void data;
+
+      const note = `${product.name}-${selectedMaterial.name}`.replace(/\s+/g, '');
+      const upiUrl = buildUpiUrl(selectedMaterial.price, note);
+
+      if (isMobileDevice()) {
+        toast.success('Order placed! Opening your UPI app… 🎉');
+        closeModal();
+        window.location.href = upiUrl;
+      } else {
+        setQrUrl(buildQrImageUrl(upiUrl));
+        setModalStep('qr');
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to start order. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to place order. Please try again.');
     }
     setBooking(false);
-  };
-const openUpiApp = () => {
-  try {
-    const note = `${product.name}-${selectedMaterial.name}`.replace(/\s+/g, '');
-    const upiUrl = buildUpiUrl(selectedMaterial.price, note);
-
-    console.log('UPI URL:', upiUrl);
-
-    window.location.assign(upiUrl);
-
-    setTimeout(() => {
-      setModalStep('awaiting');
-    }, 1000);
-
-  } catch (error) {
-    console.error('UPI Error:', error);
-    toast.error('Unable to open UPI app.');
-  }
-};
-
-  const copyUpiId = () => {
-    navigator.clipboard.writeText(UPI_ID).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  const handlePaymentConfirm = async () => {
-    if (!createdOrderId) return;
-    setConfirmingPayment(true);
-    try {
-      await API.put(`/orders/${createdOrderId}/payment-confirm`);
-      toast.success('Thank you! We will verify your payment and confirm your order shortly. 🙏');
-      closeModal();
-    } catch (err) {
-      toast.error('Could not update. If payment was completed, please contact us.');
-    }
-    setConfirmingPayment(false);
   };
 
   return (
     <>
       <style>{`
-        .detail-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          align-items: start;
-        }
-        .main-img-box {
-          border-radius: 20px;
-          overflow: hidden;
-          border: 1.5px solid #dbeafe;
-          box-shadow: 0 8px 40px rgba(26,86,219,0.10);
-          background: #eef4ff;
-          position: relative;
-        }
-        .thumb-scroll {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding-bottom: 6px;
-          margin-top: 12px;
-          -webkit-overflow-scrolling: touch;
-          scroll-behavior: smooth;
-        }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+        .main-img-box { border-radius: 20px; overflow: hidden; border: 1.5px solid #dbeafe; box-shadow: 0 8px 40px rgba(26,86,219,0.10); background: #eef4ff; position: relative; }
+        .thumb-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-top: 12px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
         .thumb-scroll::-webkit-scrollbar { height: 4px; }
         .thumb-scroll::-webkit-scrollbar-thumb { background: #1a56db; border-radius: 2px; }
         .thumb-scroll::-webkit-scrollbar-track { background: #eef4ff; border-radius: 2px; }
-        .thumb-item {
-          flex-shrink: 0;
-          width: 64px;
-          height: 64px;
-          border-radius: 10px;
-          overflow: hidden;
-          cursor: pointer;
-          border: 2.5px solid #dbeafe;
-          transition: border-color .2s, transform .15s;
-        }
+        .thumb-item { flex-shrink: 0; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2.5px solid #dbeafe; transition: border-color .2s, transform .15s; }
         .thumb-item:hover { transform: scale(1.06); }
         .thumb-item.active { border-color: #1a56db; box-shadow: 0 0 0 2px rgba(26,86,219,0.2); }
-        .dot-row {
-          display: flex;
-          justify-content: center;
-          gap: 6px;
-          margin-top: 10px;
-          flex-wrap: wrap;
-        }
-        .arrow-btn {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          background: rgba(255,255,255,0.92);
-          border: none;
-          border-radius: 50%;
-          width: 38px;
-          height: 38px;
-          cursor: pointer;
-          font-size: 18px;
-          font-weight: 700;
-          color: #1a56db;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-          z-index: 10;
-          transition: background .2s;
-        }
+        .dot-row { display: flex; justify-content: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .arrow-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.92); border: none; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; font-size: 18px; font-weight: 700; color: #1a56db; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.15); z-index: 10; transition: background .2s; }
         .arrow-btn:hover { background: #fff; }
-        .right-panel {
-          display: flex;
-          flex-direction: column;
-        }
-        .material-circles {
-          display: flex;
-          gap: 24px;
-          flex-wrap: wrap;
-          margin-bottom: 16px;
-        }
+        .right-panel { display: flex; flex-direction: column; }
+        .material-circles { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
         @media (max-width: 768px) {
-          .detail-grid {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-          }
-          .right-panel {
-            padding: 0 !important;
-          }
-          .material-circles {
-            gap: 16px !important;
-          }
-          .thumb-item {
-            width: 54px;
-            height: 54px;
-          }
-          .arrow-btn {
-            width: 32px;
-            height: 32px;
-            font-size: 15px;
-          }
+          .detail-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .right-panel { padding: 0 !important; }
+          .material-circles { gap: 16px !important; }
+          .thumb-item { width: 54px; height: 54px; }
+          .arrow-btn { width: 32px; height: 32px; font-size: 15px; }
         }
       `}</style>
 
       {/* Order / Payment Modal */}
       {showConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 440, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
 
             {/* STEP 1: Confirm details */}
             {modalStep === 'confirm' && (
@@ -308,69 +221,20 @@ const openUpiApp = () => {
               </>
             )}
 
-            {/* STEP 2: Pay via UPI */}
-            {modalStep === 'pay' && (
+            {/* STEP 2: Desktop QR — only this exists, nothing else */}
+            {modalStep === 'qr' && (
               <>
-                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 6 }}>Pay via UPI</h3>
-                <p style={{ color: '#1a56db', fontSize: 26, fontWeight: 700, fontFamily: "'Playfair Display',serif", margin: '6px 0 18px' }}>₹{selectedMaterial?.price}</p>
-
-                <button onClick={openUpiApp}
-                  style={{ width: '100%', background: '#1a56db', color: '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  📱 Open My UPI App to Pay
-                </button>
-
-                <p style={{ color: '#6b7280', fontSize: 12, marginBottom: 16 }}>
-                  Works with PhonePe, Google Pay, Paytm, BHIM & others.<br/>
-                  Only works on a mobile phone with a UPI app installed.
+                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 6 }}>Scan to Pay</h3>
+                <p style={{ color: '#1a56db', fontSize: 26, fontWeight: 700, fontFamily: "'Playfair Display',serif", margin: '4px 0 18px' }}>₹{selectedMaterial?.price}</p>
+                {qrUrl && (
+                  <img src={qrUrl} alt="UPI QR Code" style={{ width: 220, height: 220, borderRadius: 16, border: '1.5px solid #dbeafe' }} />
+                )}
+                <p style={{ color: '#6b7280', fontSize: 12, margin: '16px 0 20px' }}>
+                  Scan with any UPI app on your phone to pay instantly.
                 </p>
-
-                <div style={{ background: '#f8faff', border: '1.5px solid #dbeafe', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'left' }}>
-                  <p style={{ margin: '0 0 6px 0', fontSize: 11, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    App didn't open? Pay manually:
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <span style={{ fontSize: 14, color: '#374151', fontWeight: 700, wordBreak: 'break-all' }}>{UPI_ID}</span>
-                    <button onClick={copyUpiId}
-                      style={{ flexShrink: 0, background: copied ? '#d1fae5' : '#eef4ff', color: copied ? '#065f46' : '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 7, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                      {copied ? '✓ Copied' : 'Copy'}
-                    </button>
-                  </div>
-                  <p style={{ margin: '8px 0 0 0', fontSize: 12, color: '#6b7280' }}>
-                    Open any UPI app → Send Money → paste this ID → enter ₹{selectedMaterial?.price}
-                  </p>
-                </div>
-
-                <button onClick={() => setModalStep('awaiting')}
-                  style={{ width: '100%', background: '#eef4ff', color: '#1a56db', border: '1.5px solid #dbeafe', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 10 }}>
-                  I've Paid →
-                </button>
                 <button onClick={closeModal}
-                  style={{ width: '100%', background: 'none', color: '#6b7280', border: 'none', padding: '8px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                  Cancel and close
-                </button>
-              </>
-            )}
-
-            {/* STEP 3: Awaiting payment confirmation */}
-            {modalStep === 'awaiting' && (
-              <>
-                <div style={{ fontSize: 44, marginBottom: 12 }}>⏳</div>
-                <h3 style={{ fontFamily: "'Playfair Display',serif", color: '#0e3a8c', marginTop: 0, marginBottom: 10 }}>Almost There!</h3>
-                <p style={{ color: '#374151', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
-                  We've recorded your order for <strong>{product.name}</strong> — ₹{selectedMaterial?.price}.
-                  Please complete the payment in your UPI app. Once done, tap the button below.
-                </p>
-                <button onClick={handlePaymentConfirm} disabled={confirmingPayment}
-                  style={{ width: '100%', background: confirmingPayment ? '#93c5fd' : '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: confirmingPayment ? 'not-allowed' : 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 10 }}>
-                  {confirmingPayment ? 'Updating...' : '✅ I\'ve Completed the Payment'}
-                </button>
-                <button onClick={() => setModalStep('pay')}
-                  style={{ width: '100%', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif", marginBottom: 8 }}>
-                  ← Back to payment options
-                </button>
-                <button onClick={closeModal}
-                  style={{ width: '100%', background: 'none', color: '#6b7280', border: 'none', padding: '8px', fontSize: 13, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
-                  Close
+                  style={{ width: '100%', background: '#1a56db', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: "'Lato',sans-serif" }}>
+                  Done
                 </button>
               </>
             )}
