@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 
@@ -21,6 +21,12 @@ const getImgSrc = (p) => {
 export default function ProductsPage() {
   const navigate = useNavigate();
   const [dbProducts, setDbProducts] = useState([]);
+  const [slide, setSlide] = useState(0);
+
+  // Refs to measure the REAL rendered height of each slide
+  const heroSlideRef = useRef(null);
+  const givingSlideRef = useRef(null);
+  const [slideHeights, setSlideHeights] = useState([0, 0]);
 
   useEffect(() => {
     API.get('/products')
@@ -32,7 +38,35 @@ export default function ProductsPage() {
       .catch(() => setDbProducts([]));
   }, []);
 
+  // Measure actual heights so the slide container always fits the content exactly
+  useLayoutEffect(() => {
+    const measure = () => {
+      setSlideHeights([
+        heroSlideRef.current ? heroSlideRef.current.offsetHeight : 0,
+        givingSlideRef.current ? givingSlideRef.current.offsetHeight : 0
+      ]);
+    };
+    measure();
+    const t = setTimeout(measure, 80); // catch any late layout shift (text wrap, font load)
+    window.addEventListener('resize', measure);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlide((prev) => (prev === 0 ? 1 : 0));
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const allProducts = [...FIXED_PRODUCTS, ...dbProducts];
+
+  const offset = slide === 0 ? 0 : slideHeights[0];
+  const containerHeight = slideHeights[slide] || undefined;
 
   return (
     <div>
@@ -221,40 +255,115 @@ export default function ProductsPage() {
   }
 `}</style>
 
-      <section style={{ background: 'linear-gradient(135deg,#eef4ff,#dbeafe)', padding: '70px 20px', textAlign: 'center' }}>
-        <p style={{ color: '#1a56db', fontSize: 12, textTransform: 'uppercase', letterSpacing: 4, fontWeight: 700 }}>Our Collection</p>
-        <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(32px,5vw,48px)', color: '#0e3a8c', marginTop: 12 }}>Products</h1>
-        <p style={{ color: '#4b5563', fontSize: 16, marginTop: 16, maxWidth: 500, margin: '16px auto 0' }}>
-          Each product handcrafted with love, prayer, and purpose.
-        </p>
-        <div style={{ width: 60, height: 3, background: '#1a56db', margin: '20px auto 0' }} />
-      </section>
+     <div
+  style={{
+    overflow: "hidden",
+    height: containerHeight,
+    position: "relative",
+    transition: "height 1.2s ease-in-out"
+  }}
+>
+  <div
+    style={{
+      transform: `translateY(-${offset}px)`,
+      transition: "transform 1.2s ease-in-out"
+    }}
+  >
 
-      {/* Scrolling marquee */}
-      <div className="pp-marquee-wrap">
-        <div className="pp-marquee-track">
-          <span>✦ Handcrafted with Love &nbsp;•&nbsp; Faith-Inspired Designs &nbsp;•&nbsp; 20% of Revenue Supports Christian Missions &nbsp;•&nbsp; Made Across India &nbsp;•&nbsp;</span>
-          <span>✦ Handcrafted with Love &nbsp;•&nbsp; Faith-Inspired Designs &nbsp;•&nbsp; 20% of Revenue Supports Christian Missions &nbsp;•&nbsp; Made Across India &nbsp;•&nbsp;</span>
+    {/* Products Hero */}
+
+    <section
+      ref={heroSlideRef}
+      style={{
+        background: "linear-gradient(135deg,#eef4ff,#dbeafe)",
+        padding: "70px 20px",
+        textAlign: "center"
+      }}
+    >
+      <p
+        style={{
+          color: "#1a56db",
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: 4,
+          fontWeight: 700
+        }}
+      >
+        Our Collection
+      </p>
+
+      <h1
+        style={{
+          fontFamily: "'Playfair Display',serif",
+          fontSize: "clamp(32px,5vw,48px)",
+          color: "#0e3a8c",
+          marginTop: 12
+        }}
+      >
+        Products
+      </h1>
+
+      <p
+        style={{
+          color: "#4b5563",
+          fontSize: 16,
+          marginTop: 16
+        }}
+      >
+        Each product handcrafted with love, prayer, and purpose.
+      </p>
+
+      <div
+        style={{
+          width: 60,
+          height: 3,
+          background: "#1a56db",
+          margin: "20px auto"
+        }}
+      />
+    </section>
+
+    {/* Giving Back */}
+
+    <section
+      ref={givingSlideRef}
+      style={{
+        maxWidth: 1100,
+        margin: "50px auto",
+        padding: "0 20px"
+      }}
+    >
+      <div className="pp-revenue-banner">
+
+        <div className="pp-revenue-img">
+          <img src="/images/product5.png" alt="" />
         </div>
+
+        <div className="pp-revenue-text">
+          <p className="pp-revenue-label">
+            ✦ Giving Back
+          </p>
+
+          <h3>
+            Creating with Purpose
+          </h3>
+
+          <p>
+            20% of our revenue is dedicated to supporting Christian missions —
+            helping spread the Gospel and serve communities in need.
+          </p>
+        </div>
+
+        <div className="pp-revenue-circle">
+          <span>20%</span>
+          <small>To Missions</small>
+        </div>
+
       </div>
+    </section>
 
-      {/* Giving Back banner */}
-      <section style={{ maxWidth: 1100, margin: '50px auto', padding: '0 20px' }}>
-        <div className="pp-revenue-banner">
-          <div className="pp-revenue-img">
-            <img src="/images/product5.png" alt="Handcrafted clipboard" />
-          </div>
-          <div className="pp-revenue-text">
-            <p className="pp-revenue-label">✦ Giving Back</p>
-            <h3>Creating with Purpose</h3>
-            <p>20% of our revenue is dedicated to supporting Christian missions — helping spread the Gospel and serve communities in need.</p>
-          </div>
-          <div className="pp-revenue-circle">
-            <span>20%</span>
-            <small>To Missions</small>
-          </div>
-        </div>
-      </section>
+  </div>
+</div>
 
       <section style={{ maxWidth: 1100, margin: '60px auto', padding: '0 20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 32 }}>
