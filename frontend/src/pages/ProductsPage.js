@@ -266,6 +266,7 @@ export default function ProductsPage() {
     maxHeight: "320px",
     width: "100%",
     position: "relative",
+    marginTop: "-30px",
     transition: "height 1.2s ease-in-out"
   }}
 >
@@ -281,67 +282,13 @@ export default function ProductsPage() {
 
     {/* Products Hero */}
 
-    <section
-      ref={heroSlideRef}
-      style={{
-        background: "linear-gradient(135deg,#eef4ff,#dbeafe)",
-        padding: "35px 20px",
-        textAlign: "center",
-        width: "50%",
-        flex: "0 0 50%",
-        boxSizing: "border-box"
-      }}
-    >
-      <p
-        style={{
-          color: "#1a56db",
-          fontSize: 12,
-          textTransform: "uppercase",
-          letterSpacing: 4,
-          fontWeight: 700
-        }}
-      >
-        Our Collection
-      </p>
-
-      <h1
-        style={{
-          fontFamily: "'Playfair Display',serif",
-          fontSize: "clamp(24px,3vw,36px)",
-          color: "#0e3a8c",
-          marginTop: 12
-        }}
-      >
-        Products
-      </h1>
-
-      <p
-        style={{
-          color: "#4b5563",
-          fontSize: 14,
-          marginTop: 16
-        }}
-      >
-        Each product handcrafted with love, prayer, and purpose.
-      </p>
-
-      <div
-        style={{
-          width: 60,
-          height: 3,
-          background: "#1a56db",
-          margin: "20px auto"
-        }}
-      />
-    </section>
-
     {/* Giving Back */}
 
     <section
       ref={givingSlideRef}
       style={{
         maxWidth: 1100,
-        margin: "50px auto",
+        margin: '0 auto 40px'
         padding: "0 20px",
         width: "50%",
         flex: "0 0 50%",
