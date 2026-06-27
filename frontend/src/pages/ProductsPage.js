@@ -37,25 +37,55 @@ export default function ProductsPage() {
   return (
     <div>
       <style>{`
-        /* Custom Font imports placeholder - ensure these are available in your index.html/App.css */
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
 
-        /* Clean Animations & Elements styling */
-        .pp-products-container {
-          font-family: 'Lato', sans-serif;
-          background-color: #f8fafc;
-          padding-bottom: 80px;
+        /* Main Fixed Area Definition */
+        .pp-fixed-showcase-box {
+          width: 100%;
+          height: 30vh; /* Strictly locked to exactly 30% viewport height */
+          overflow: hidden;
+          position: relative;
+          background: #f8fafc;
+          box-sizing: border-box;
         }
 
-        /* Hero Header Section */
-        .pp-hero-section {
+        /* 3000 Seconds Infinite Multi-Stage Slider Track */
+        .pp-sliding-track {
+          display: flex;
+          width: 200%;
+          height: 100%;
+          animation: pp-infinite-loop-slide 3000s cubic-bezier(0.85, 0, 0.15, 1) infinite;
+        }
+
+        @keyframes pp-infinite-loop-slide {
+          0%, 48% { transform: translateX(0%); }      /* First 1440s showing text banner */
+          50%, 98% { transform: translateX(-50%); }  /* Next 1440s showing Product 5 banner */
+          100% { transform: translateX(0%); }        /* Smooth reset back to beginning */
+        }
+
+        /* Slide Items Generic Styles */
+        .pp-slide-pane {
+          width: 50%;
+          height: 100%;
+          flex: 0 0 50%;
+          box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Slide One: The Hero Text Panel */
+        .pp-pane-hero {
           background: linear-gradient(135deg, #eef4ff, #dbeafe);
-          padding: 70px 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          padding: 0 20px;
           text-align: center;
         }
         .pp-hero-label {
           color: #1a56db;
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 4px;
           font-weight: 700;
@@ -63,45 +93,33 @@ export default function ProductsPage() {
         }
         .pp-hero-title {
           font-family: 'Playfair Display', serif;
-          font-size: clamp(32px, 5vw, 48px);
+          font-size: clamp(24px, 4vw, 38px);
           color: #0e3a8c;
-          margin-top: 12px;
-          margin-bottom: 0;
+          margin: 6px 0;
         }
         .pp-hero-subtitle {
           color: #4b5563;
-          font-size: 16px;
-          margin-top: 16px;
-          margin-bottom: 0;
+          font-size: 14px;
+          margin: 0;
         }
         .pp-hero-divider {
-          width: 60px;
+          width: 50px;
           height: 3px;
           background: #1a56db;
-          margin: 20px auto 0;
+          margin-top: 12px;
         }
 
-        /* Revenue / Giving Back Banner */
-        .pp-revenue-container {
-          max-width: 1100px;
-          margin: 50px auto 0;
-          padding: 0 20px;
-          box-sizing: border-box;
-        }
-        .pp-revenue-banner {
+        /* Slide Two: The Revenue Display Panel */
+        .pp-pane-revenue {
           display: flex;
           align-items: stretch;
-          position: relative;
-          overflow: hidden;
-          border-radius: 24px;
           background: linear-gradient(135deg, #0e3a8c, #1a56db);
-          box-shadow: 0 12px 40px rgba(14, 58, 140, 0.25);
-          min-height: 320px;
+          color: #fff;
         }
         .pp-revenue-img {
-          flex: 0 0 36%;
+          flex: 0 0 35%;
+          height: 100%;
           position: relative;
-          z-index: 1;
         }
         .pp-revenue-img img {
           width: 100%;
@@ -114,36 +132,35 @@ export default function ProductsPage() {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          padding: 45px 50px 45px 120px;
-          color: #fff;
+          padding: 0 40px 0 80px;
         }
-        .pp-revenue-label {
-          font-size: 12px;
-          letter-spacing: 3px;
+        .pp-revenue-lbl {
+          font-size: 11px;
+          letter-spacing: 2px;
           color: #b3d1ff;
           font-weight: 700;
-          margin-bottom: 10px;
+          margin-bottom: 4px;
           text-transform: uppercase;
         }
         .pp-revenue-text h3 {
           font-family: 'Playfair Display', serif;
-          font-size: 34px;
-          margin: 0 0 16px;
+          font-size: clamp(20px, 3vw, 28px);
+          margin: 0 0 8px 0;
         }
         .pp-revenue-text p {
-          font-size: 16px;
-          line-height: 1.8;
+          font-size: 14px;
+          line-height: 1.6;
           color: #dbeafe;
-          max-width: 520px;
           margin: 0;
+          max-width: 480px;
         }
         .pp-revenue-circle {
           position: absolute;
-          left: 36%;
+          left: 35%;
           top: 50%;
           transform: translate(-50%, -50%);
-          width: 130px;
-          height: 130px;
+          width: 90px;
+          height: 90px;
           border-radius: 50%;
           background: #fff;
           color: #0e3a8c;
@@ -151,27 +168,27 @@ export default function ProductsPage() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border: 5px solid #eef4ff;
-          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.18);
-          z-index: 20;
+          border: 4px solid #eef4ff;
+          box-shadow: 0 8px 25px rgba(0,0,0,.15);
+          z-index: 10;
         }
         .pp-revenue-circle span {
           font-family: 'Playfair Display', serif;
-          font-size: 34px;
+          font-size: 24px;
           font-weight: 700;
           line-height: 1;
         }
         .pp-revenue-circle small {
-          font-size: 12px;
+          font-size: 10px;
           color: #1a56db;
           font-weight: 700;
-          margin-top: 6px;
+          margin-top: 2px;
         }
 
-        /* Products Grid UI elements */
+        /* Clean Products Grid Styling */
         .pp-grid-section {
           max-width: 1100px;
-          margin: 60px auto 0;
+          margin: 50px auto 80px;
           padding: 0 20px;
         }
         .pp-products-grid {
@@ -185,17 +202,16 @@ export default function ProductsPage() {
           overflow: hidden;
           cursor: pointer;
           background: #fff;
-          transition: transform .25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: transform .25s ease, box-shadow .25s ease;
         }
         .pp-product-card:hover {
           transform: translateY(-6px);
-          box-shadow: 0 16px 48px rgba(26, 86, 219, 0.14);
+          box-shadow: 0 16px 48px rgba(26,86,219,0.14);
         }
         .pp-card-img-wrap {
-          height: 260px;
+          height: 240px;
           overflow: hidden;
           background: #eef4ff;
-          position: relative;
         }
         .pp-card-img-wrap img {
           width: 100%;
@@ -207,7 +223,7 @@ export default function ProductsPage() {
           transform: scale(1.05);
         }
         .pp-card-body {
-          padding: 22px 24px 28px;
+          padding: 20px;
         }
         .pp-card-tag {
           font-size: 11px;
@@ -215,7 +231,7 @@ export default function ProductsPage() {
           text-transform: uppercase;
           letter-spacing: 2px;
           font-weight: 700;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
         .pp-card-title {
           font-family: 'Playfair Display', serif;
@@ -232,7 +248,7 @@ export default function ProductsPage() {
         .pp-card-desc {
           color: #6b7280;
           font-size: 13px;
-          line-height: 1.7;
+          line-height: 1.6;
           margin: 0 0 20px 0;
         }
         .pp-card-btn {
@@ -252,56 +268,38 @@ export default function ProductsPage() {
           background: #0e3a8c;
         }
 
-        /* Mobile Breakpoints responsive adaptations */
+        /* Mobile Breakpoints */
         @media(max-width: 768px) {
-          .pp-revenue-banner {
-            flex-direction: column;
-            min-height: auto;
-          }
-          .pp-revenue-img {
-            flex: none;
-            height: 260px;
-          }
-          .pp-revenue-text {
-            padding: 80px 24px 35px;
-            text-align: center;
-            align-items: center;
-          }
-          .pp-revenue-text p {
-            max-width: 100%;
-          }
-          .pp-revenue-circle {
-            left: 50%;
-            top: 260px;
-            transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
-          }
-          .pp-revenue-circle span {
-            font-size: 28px;
-          }
+          .pp-fixed-showcase-box { height: 35vh; } /* Extra room for smaller mobile wrappers */
+          .pp-revenue-img { flex: 0 0 40%; }
+          .pp-revenue-text { padding: 0 20px 0 50px; }
+          .pp-revenue-circle { width: 70px; height: 70px; left: 40%; }
+          .pp-revenue-circle span { font-size: 18px; }
+          .pp-revenue-circle small { font-size: 8px; }
         }
       `}</style>
 
-      <div className="pp-products-container">
-        {/* Header Title Hero Display Section */}
-        <section className="pp-hero-section">
-          <p className="pp-hero-label">Our Collection</p>
-          <h1 className="pp-hero-title">Products</h1>
-          <p className="pp-hero-subtitle">
-            Each product handcrafted with love, prayer, and purpose.
-          </p>
-          <div className="pp-hero-divider" />
-        </section>
+      {/* Exactly 100% Width & 30% Height Fixed Display Box */}
+      <div className="pp-fixed-showcase-box">
+        <div className="pp-sliding-track">
+          
+          {/* Item 1: Text Header Display View */}
+          <div className="pp-slide-pane pp-pane-hero">
+            <p className="pp-hero-label">Our Collection</p>
+            <h1 className="pp-hero-title">Products</h1>
+            <p className="pp-hero-subtitle">
+              Each product handcrafted with love, prayer, and purpose.
+            </p>
+            <div className="pp-hero-divider" />
+          </div>
 
-        {/* Dynamic Support/Giving Back Banner Showcase Section */}
-        <section className="pp-revenue-container">
-          <div className="pp-revenue-banner">
+          {/* Item 2: Product 5 20% Data Banner View */}
+          <div className="pp-slide-pane pp-pane-revenue">
             <div className="pp-revenue-img">
               <img src="/images/product5.png" alt="Mission support product" />
             </div>
             <div className="pp-revenue-text">
-              <p className="pp-revenue-label">✦ Giving Back</p>
+              <p className="pp-revenue-lbl">✦ Giving Back</p>
               <h3>Creating with Purpose</h3>
               <p>
                 20% of our revenue is dedicated to supporting Christian missions —
@@ -313,42 +311,35 @@ export default function ProductsPage() {
               <small>To Missions</small>
             </div>
           </div>
-        </section>
 
-        {/* Dynamic Products Grid Section */}
-        <section className="pp-grid-section">
-          <div className="pp-products-grid">
-            {allProducts.map(p => (
-              <div 
-                key={p._id}
-                className="pp-product-card"
-                onClick={() => navigate(`/products/${p._id}`)}
-              >
-                <div className="pp-card-img-wrap">
-                  <img
-                    src={getImgSrc(p)}
-                    alt={p.name}
-                    onError={e => { e.target.style.visibility = 'hidden'; }}
-                  />
-                </div>
-                <div className="pp-card-body">
-                  <div className="pp-card-tag">Christian Product</div>
-                  <h3 className="pp-card-title">{p.name}</h3>
-                  {p.bibleVerse && <p className="pp-card-verse">— {p.bibleVerse}</p>}
-                  <p className="pp-card-desc">
-                    {p.description && p.description.length > 80 
-                      ? `${p.description.slice(0, 80)}...` 
-                      : p.description}
-                  </p>
-                  <button className="pp-card-btn">
-                    View Product →
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        </div>
       </div>
+
+      {/* Independent Products Shelf Grid View */}
+      <section className="pp-grid-section">
+        <div className="pp-products-grid">
+          {allProducts.map(p => (
+            <div 
+              key={p._id}
+              className="pp-product-card"
+              onClick={() => navigate(`/products/${p._id}`)}
+            >
+              <div className="pp-card-img-wrap">
+                <img src={getImgSrc(p)} alt={p.name} onError={e => { e.target.style.visibility = 'hidden'; }} />
+              </div>
+              <div className="pp-card-body">
+                <div className="pp-card-tag">Christian Product</div>
+                <h3 className="pp-card-title">{p.name}</h3>
+                {p.bibleVerse && <p className="pp-card-verse">— {p.bibleVerse}</p>}
+                <p className="pp-card-desc">
+                  {p.description && p.description.length > 80 ? `${p.description.slice(0, 80)}...` : p.description}
+                </p>
+                <button className="pp-card-btn">View Product →</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
