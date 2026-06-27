@@ -58,14 +58,13 @@ export default function ProductsPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setSlide((prev) => (prev === 0 ? 1 : 0));
-    }, 3500);
+    }, 60000); // wait a full minute between slide changes
 
     return () => clearInterval(interval);
   }, []);
 
   const allProducts = [...FIXED_PRODUCTS, ...dbProducts];
 
-  const offset = slide === 0 ? 0 : slideHeights[0];
   const containerHeight = slideHeights[slide] || undefined;
 
   return (
@@ -265,7 +264,10 @@ export default function ProductsPage() {
 >
   <div
     style={{
-      transform: `translateY(-${offset}px)`,
+      display: "flex",
+      flexDirection: "row",
+      width: "200%",
+      transform: `translateX(-${slide * 50}%)`,
       transition: "transform 1.2s ease-in-out"
     }}
   >
@@ -277,7 +279,10 @@ export default function ProductsPage() {
       style={{
         background: "linear-gradient(135deg,#eef4ff,#dbeafe)",
         padding: "70px 20px",
-        textAlign: "center"
+        textAlign: "center",
+        width: "50%",
+        flex: "0 0 50%",
+        boxSizing: "border-box"
       }}
     >
       <p
@@ -330,7 +335,10 @@ export default function ProductsPage() {
       style={{
         maxWidth: 1100,
         margin: "50px auto",
-        padding: "0 20px"
+        padding: "0 20px",
+        width: "50%",
+        flex: "0 0 50%",
+        boxSizing: "border-box"
       }}
     >
       <div className="pp-revenue-banner">
