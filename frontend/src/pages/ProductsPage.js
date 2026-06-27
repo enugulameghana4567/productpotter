@@ -42,25 +42,26 @@ export default function ProductsPage() {
         /* Main Fixed Area Definition */
         .pp-fixed-showcase-box {
           width: 100%;
-          height: 30vh; /* Strictly locked to exactly 30% viewport height */
+          height: 30vh; /* Locked to exactly 30% viewport height */
           overflow: hidden;
           position: relative;
           background: #f8fafc;
           box-sizing: border-box;
         }
 
-        /* 3000 Seconds Infinite Multi-Stage Slider Track */
+        /* Fast 12-Second Infinite Multi-Stage Slider Track */
         .pp-sliding-track {
           display: flex;
           width: 200%;
           height: 100%;
-          animation: pp-infinite-loop-slide 3000s cubic-bezier(0.85, 0, 0.15, 1) infinite;
+          animation: pp-infinite-loop-slide 12s cubic-bezier(0.85, 0, 0.15, 1) infinite;
         }
 
+        /* Fast Timed Keyframes: ~5s reading pause per slide, 1s quick transition transition */
         @keyframes pp-infinite-loop-slide {
-          0%, 48% { transform: translateX(0%); }      /* First 1440s showing text banner */
-          50%, 98% { transform: translateX(-50%); }  /* Next 1440s showing Product 5 banner */
-          100% { transform: translateX(0%); }        /* Smooth reset back to beginning */
+          0%, 42% { transform: translateX(0%); }      /* Holds Slide 1 still for ~5 seconds */
+          50%, 92% { transform: translateX(-50%); }  /* Slides over and holds Slide 2 still for ~5 seconds */
+          100% { transform: translateX(0%); }        /* Slides seamlessly back to the beginning */
         }
 
         /* Slide Items Generic Styles */
@@ -270,7 +271,7 @@ export default function ProductsPage() {
 
         /* Mobile Breakpoints */
         @media(max-width: 768px) {
-          .pp-fixed-showcase-box { height: 35vh; } /* Extra room for smaller mobile wrappers */
+          .pp-fixed-showcase-box { height: 35vh; } /* Extra container breathing room for layout scaling */
           .pp-revenue-img { flex: 0 0 40%; }
           .pp-revenue-text { padding: 0 20px 0 50px; }
           .pp-revenue-circle { width: 70px; height: 70px; left: 40%; }
@@ -279,11 +280,11 @@ export default function ProductsPage() {
         }
       `}</style>
 
-      {/* Exactly 100% Width & 30% Height Fixed Display Box */}
+      {/* 100% Width & 30% Height Fixed Structural Container */}
       <div className="pp-fixed-showcase-box">
         <div className="pp-sliding-track">
           
-          {/* Item 1: Text Header Display View */}
+          {/* Slide 1: Collections Text View */}
           <div className="pp-slide-pane pp-pane-hero">
             <p className="pp-hero-label">Our Collection</p>
             <h1 className="pp-hero-title">Products</h1>
@@ -293,7 +294,7 @@ export default function ProductsPage() {
             <div className="pp-hero-divider" />
           </div>
 
-          {/* Item 2: Product 5 20% Data Banner View */}
+          {/* Slide 2: Mission Banner (Product 5 with 20% Graphic Badge) */}
           <div className="pp-slide-pane pp-pane-revenue">
             <div className="pp-revenue-img">
               <img src="/images/product5.png" alt="Mission support product" />
@@ -315,7 +316,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Independent Products Shelf Grid View */}
+      {/* Main Grid Shelf Section */}
       <section className="pp-grid-section">
         <div className="pp-products-grid">
           {allProducts.map(p => (
