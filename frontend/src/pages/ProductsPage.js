@@ -36,6 +36,42 @@ export default function ProductsPage() {
 
   return (
     <div>
+      <style>{`
+        @keyframes pp-marquee-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .pp-marquee-wrap { overflow: hidden; background: #0e3a8c; padding: 12px 0; }
+        .pp-marquee-track { display: flex; width: max-content; animation: pp-marquee-scroll 22s linear infinite; }
+        .pp-marquee-track span { white-space: nowrap; color: #fff; font-family: 'Lato',sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; padding-right: 40px; }
+
+        .pp-revenue-banner {
+          display: flex; align-items: stretch; border-radius: 24px; overflow: hidden;
+          background: linear-gradient(135deg,#0e3a8c,#1a56db); box-shadow: 0 12px 40px rgba(14,58,140,0.25);
+          position: relative; min-height: 220px;
+        }
+        .pp-revenue-img { flex: 0 0 38%; }
+        .pp-revenue-img img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 220px; }
+        .pp-revenue-text { flex: 1; padding: 36px 110px 36px 36px; display: flex; flex-direction: column; justify-content: center; color: #fff; }
+        .pp-revenue-label { font-size: 12px; letter-spacing: 3px; color: #b3d1ff; font-weight: 700; margin: 0 0 10px; text-transform: uppercase; }
+        .pp-revenue-text h3 { font-family: 'Playfair Display',serif; font-size: 26px; margin: 0 0 12px; }
+        .pp-revenue-text p { font-size: 14px; line-height: 1.7; color: #dbeafe; margin: 0; max-width: 420px; }
+        .pp-revenue-circle {
+          position: absolute; right: 28px; top: 50%; transform: translateY(-50%);
+          width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #0e3a8c;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          box-shadow: 0 8px 28px rgba(0,0,0,0.18); border: 4px solid #eef4ff;
+        }
+        .pp-revenue-circle span { font-family: 'Playfair Display',serif; font-size: 26px; font-weight: 700; line-height: 1; }
+        .pp-revenue-circle small { font-size: 10px; color: #1a56db; font-weight: 700; margin-top: 2px; }
+        @media (max-width: 768px) {
+          .pp-revenue-banner { flex-direction: column; min-height: auto; }
+          .pp-revenue-img { flex: none; height: 160px; }
+          .pp-revenue-text { padding: 28px 24px 70px 24px; }
+          .pp-revenue-circle { right: 24px; bottom: -10px; top: auto; transform: none; width: 90px; height: 90px; }
+        }
+      `}</style>
+
       <section style={{ background: 'linear-gradient(135deg,#eef4ff,#dbeafe)', padding: '70px 20px', textAlign: 'center' }}>
         <p style={{ color: '#1a56db', fontSize: 12, textTransform: 'uppercase', letterSpacing: 4, fontWeight: 700 }}>Our Collection</p>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(32px,5vw,48px)', color: '#0e3a8c', marginTop: 12 }}>Products</h1>
@@ -43,6 +79,32 @@ export default function ProductsPage() {
           Each product handcrafted with love, prayer, and purpose.
         </p>
         <div style={{ width: 60, height: 3, background: '#1a56db', margin: '20px auto 0' }} />
+      </section>
+
+      {/* Scrolling marquee */}
+      <div className="pp-marquee-wrap">
+        <div className="pp-marquee-track">
+          <span>✦ Handcrafted with Love &nbsp;•&nbsp; Faith-Inspired Designs &nbsp;•&nbsp; 20% of Revenue Supports Christian Missions &nbsp;•&nbsp; Made Across India &nbsp;•&nbsp;</span>
+          <span>✦ Handcrafted with Love &nbsp;•&nbsp; Faith-Inspired Designs &nbsp;•&nbsp; 20% of Revenue Supports Christian Missions &nbsp;•&nbsp; Made Across India &nbsp;•&nbsp;</span>
+        </div>
+      </div>
+
+      {/* Giving Back banner */}
+      <section style={{ maxWidth: 1100, margin: '50px auto', padding: '0 20px' }}>
+        <div className="pp-revenue-banner">
+          <div className="pp-revenue-img">
+            <img src="/images/product4.jpeg" alt="Handcrafted clipboard" />
+          </div>
+          <div className="pp-revenue-text">
+            <p className="pp-revenue-label">✦ Giving Back</p>
+            <h3>Creating with Purpose</h3>
+            <p>20% of our revenue is dedicated to supporting Christian missions — helping spread the Gospel and serve communities in need.</p>
+          </div>
+          <div className="pp-revenue-circle">
+            <span>20%</span>
+            <small>To Missions</small>
+          </div>
+        </div>
       </section>
 
       <section style={{ maxWidth: 1100, margin: '60px auto', padding: '0 20px' }}>
