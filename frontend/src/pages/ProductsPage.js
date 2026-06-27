@@ -58,7 +58,7 @@ export default function ProductsPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setSlide((prev) => (prev === 0 ? 1 : 0));
-    }, 60000); // wait a full minute between slide changes
+    },  3000); // wait a full minute between slide changes
 
     return () => clearInterval(interval);
   }, []);
@@ -111,7 +111,9 @@ export default function ProductsPage() {
 
     box-shadow:0 12px 40px rgba(14,58,140,.25);
 
-    min-height:320px;
+    min-height:260px;
+    height:30vh;
+    max-height:320px;
   }
 
   /* Left image */
@@ -257,7 +259,10 @@ export default function ProductsPage() {
      <div
   style={{
     overflow: "hidden",
-    height: containerHeight,
+    height: "30vh",
+    minHeight: "250px",
+    maxHeight: "320px",
+    width: "100%",
     position: "relative",
     transition: "height 1.2s ease-in-out"
   }}
@@ -278,7 +283,7 @@ export default function ProductsPage() {
       ref={heroSlideRef}
       style={{
         background: "linear-gradient(135deg,#eef4ff,#dbeafe)",
-        padding: "70px 20px",
+        padding: "35px 20px",
         textAlign: "center",
         width: "50%",
         flex: "0 0 50%",
@@ -300,7 +305,7 @@ export default function ProductsPage() {
       <h1
         style={{
           fontFamily: "'Playfair Display',serif",
-          fontSize: "clamp(32px,5vw,48px)",
+          fontSize: "clamp(24px,3vw,36px)",
           color: "#0e3a8c",
           marginTop: 12
         }}
@@ -311,7 +316,7 @@ export default function ProductsPage() {
       <p
         style={{
           color: "#4b5563",
-          fontSize: 16,
+          fontSize: 14,
           marginTop: 16
         }}
       >
