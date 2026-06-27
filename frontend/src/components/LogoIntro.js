@@ -35,8 +35,9 @@ export default function LogoIntro() {
           transition: transform .85s cubic-bezier(.65,.05,.2,1);
         }
         .pp-intro-logo-wrap.pp-shrink {
-          transform: scale(0.4) translate(calc(-50vw + 90px), calc(-50vh + 36px));
-        }
+  /* Adjust these values to match your navbar layout exactly */
+        transform: scale(0.4) translate(calc(-50vw + 90px), calc(-50vh + 36px));
+         }
         .pp-intro-logo-img {
           width: 108px; height: 108px; border-radius: 50%; object-fit: cover;
           border: 3px solid #dbeafe; box-shadow: 0 12px 44px rgba(26,86,219,0.18);
