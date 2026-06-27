@@ -37,40 +37,189 @@ export default function ProductsPage() {
   return (
     <div>
       <style>{`
-        @keyframes pp-marquee-scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .pp-marquee-wrap { overflow: hidden; background: #0e3a8c; padding: 12px 0; }
-        .pp-marquee-track { display: flex; width: max-content; animation: pp-marquee-scroll 22s linear infinite; }
-        .pp-marquee-track span { white-space: nowrap; color: #fff; font-family: 'Lato',sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; padding-right: 40px; }
+  @keyframes pp-marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
 
-        .pp-revenue-banner {
-          display: flex; align-items: stretch; border-radius: 24px; overflow: hidden;
-          background: linear-gradient(135deg,#0e3a8c,#1a56db); box-shadow: 0 12px 40px rgba(14,58,140,0.25);
-          position: relative; min-height: 220px;
-        }
-        .pp-revenue-img { flex: 0 0 38%; }
-        .pp-revenue-img img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 220px; }
-        .pp-revenue-text { flex: 1; padding: 36px 110px 36px 36px; display: flex; flex-direction: column; justify-content: center; color: #fff; }
-        .pp-revenue-label { font-size: 12px; letter-spacing: 3px; color: #b3d1ff; font-weight: 700; margin: 0 0 10px; text-transform: uppercase; }
-        .pp-revenue-text h3 { font-family: 'Playfair Display',serif; font-size: 26px; margin: 0 0 12px; }
-        .pp-revenue-text p { font-size: 14px; line-height: 1.7; color: #dbeafe; margin: 0; max-width: 420px; }
-        .pp-revenue-circle {
-          position: absolute; right: 28px; top: 50%; transform: translateY(-50%);
-          width: 110px; height: 110px; border-radius: 50%; background: #fff; color: #0e3a8c;
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          box-shadow: 0 8px 28px rgba(0,0,0,0.18); border: 4px solid #eef4ff;
-        }
-        .pp-revenue-circle span { font-family: 'Playfair Display',serif; font-size: 26px; font-weight: 700; line-height: 1; }
-        .pp-revenue-circle small { font-size: 10px; color: #1a56db; font-weight: 700; margin-top: 2px; }
-        @media (max-width: 768px) {
-          .pp-revenue-banner { flex-direction: column; min-height: auto; }
-          .pp-revenue-img { flex: none; height: 160px; }
-          .pp-revenue-text { padding: 28px 24px 70px 24px; }
-          .pp-revenue-circle { right: 24px; bottom: -10px; top: auto; transform: none; width: 90px; height: 90px; }
-        }
-      `}</style>
+  .pp-marquee-wrap{
+    overflow:hidden;
+    background:#0e3a8c;
+    padding:12px 0;
+  }
+
+  .pp-marquee-track{
+    display:flex;
+    width:max-content;
+    animation:pp-marquee-scroll 22s linear infinite;
+  }
+
+  .pp-marquee-track span{
+    white-space:nowrap;
+    color:#fff;
+    font-family:'Lato',sans-serif;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:1px;
+    padding-right:40px;
+  }
+
+  /* Banner */
+
+  .pp-revenue-banner{
+    display:flex;
+    align-items:stretch;
+    position:relative;
+    overflow:hidden;
+
+    border-radius:24px;
+
+    background:linear-gradient(135deg,#0e3a8c,#1a56db);
+
+    box-shadow:0 12px 40px rgba(14,58,140,.25);
+
+    min-height:320px;
+  }
+
+  /* Left image */
+
+  .pp-revenue-img{
+    flex:0 0 36%;
+    position:relative;
+    z-index:1;
+  }
+
+  .pp-revenue-img img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  /* Right content */
+
+  .pp-revenue-text{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+
+    padding:45px 50px 45px 120px;
+
+    color:#fff;
+  }
+
+  .pp-revenue-label{
+    font-size:12px;
+    letter-spacing:3px;
+    color:#b3d1ff;
+    font-weight:700;
+    margin-bottom:10px;
+    text-transform:uppercase;
+  }
+
+  .pp-revenue-text h3{
+    font-family:'Playfair Display',serif;
+    font-size:34px;
+    margin:0 0 16px;
+  }
+
+  .pp-revenue-text p{
+    font-size:16px;
+    line-height:1.8;
+    color:#dbeafe;
+    max-width:520px;
+  }
+
+  /* 20% Circle */
+
+  .pp-revenue-circle{
+
+    position:absolute;
+
+    left:36%;
+
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:130px;
+    height:130px;
+
+    border-radius:50%;
+
+    background:#fff;
+
+    color:#0e3a8c;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    border:5px solid #eef4ff;
+
+    box-shadow:0 15px 40px rgba(0,0,0,.18);
+
+    z-index:20;
+  }
+
+  .pp-revenue-circle span{
+    font-family:'Playfair Display',serif;
+    font-size:34px;
+    font-weight:700;
+    line-height:1;
+  }
+
+  .pp-revenue-circle small{
+    font-size:12px;
+    color:#1a56db;
+    font-weight:700;
+    margin-top:6px;
+  }
+
+  /* Mobile */
+
+  @media(max-width:768px){
+
+    .pp-revenue-banner{
+      flex-direction:column;
+      min-height:auto;
+    }
+
+    .pp-revenue-img{
+      flex:none;
+      height:260px;
+    }
+
+    .pp-revenue-text{
+      padding:80px 24px 35px;
+      text-align:center;
+      align-items:center;
+    }
+
+    .pp-revenue-text p{
+      max-width:100%;
+    }
+
+    .pp-revenue-circle{
+
+      left:50%;
+
+      top:260px;
+
+      transform:translate(-50%,-50%);
+
+      width:100px;
+      height:100px;
+    }
+
+    .pp-revenue-circle span{
+      font-size:28px;
+    }
+
+  }
+`}</style>
 
       <section style={{ background: 'linear-gradient(135deg,#eef4ff,#dbeafe)', padding: '70px 20px', textAlign: 'center' }}>
         <p style={{ color: '#1a56db', fontSize: 12, textTransform: 'uppercase', letterSpacing: 4, fontWeight: 700 }}>Our Collection</p>
