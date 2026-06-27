@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AdminLoginModal from './AdminLoginModal';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [logoLoaded, setLogoLoaded] = useState(true);
+  const [logoError, setLogoError] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/'); setMenuOpen(false); };
 
@@ -43,31 +45,35 @@ export default function Navbar() {
         }
       `}</style>
 
+      {showAdminLogin && <AdminLoginModal onClose={() => setShowAdminLogin(false)} />}
+
       <nav style={{ background: '#fff', borderBottom: '2px solid #dbeafe', position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 2px 16px rgba(26,86,219,0.08)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 70 }}>
 
-          {/* Logo */}
-          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {logoLoaded ? (
+          {/* Logo — clicking opens Admin Login */}
+          <div
+            onClick={() => setShowAdminLogin(true)}
+            title="Admin Login"
+            style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            {!logoError ? (
               <img
                 src="/logo.jpeg"
                 alt="Potters Productions"
                 style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: '2px solid #dbeafe' }}
-                onError={() => setLogoLoaded(false)}
-                onLoad={() => setLogoLoaded(true)}
+                onError={() => setLogoError(true)}
               />
             ) : (
-              <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'linear-gradient(135deg,#1a56db,#0e3a8c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20, fontFamily: "'Playfair Display',serif", flexShrink: 0 }}>P</div>
+              <div style={{ width: 46, height: 46, borderRadius: '50%', background: '#1a56db', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 18, fontFamily: "'Playfair Display',serif" }}>P</div>
             )}
             <div>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#1a56db', letterSpacing: 1, lineHeight: 1.2 }}>
                 Potters Productions
               </div>
               <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 400, letterSpacing: 2, fontFamily: "'Lato',sans-serif" }}>
-                Crafted with Faith
+                Master's Medium
               </div>
             </div>
-          </Link>
+          </div>
 
           {/* Desktop Links */}
           <ul className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: 20, listStyle: 'none', margin: 0, padding: 0 }}>
