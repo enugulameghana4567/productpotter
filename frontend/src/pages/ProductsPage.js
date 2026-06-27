@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 
@@ -21,12 +21,6 @@ const getImgSrc = (p) => {
 export default function ProductsPage() {
   const navigate = useNavigate();
   const [dbProducts, setDbProducts] = useState([]);
-  const [slide, setSlide] = useState(0);
-
-  // Refs to measure the REAL rendered height of each slide
-  const heroSlideRef = useRef(null);
-  const givingSlideRef = useRef(null);
-  const [slideHeights, setSlideHeights] = useState([0, 0]);
 
   useEffect(() => {
     API.get('/products')
@@ -38,34 +32,7 @@ export default function ProductsPage() {
       .catch(() => setDbProducts([]));
   }, []);
 
-  // Measure actual heights so the slide container always fits the content exactly
-  useLayoutEffect(() => {
-    const measure = () => {
-      setSlideHeights([
-        heroSlideRef.current ? heroSlideRef.current.offsetHeight : 0,
-        givingSlideRef.current ? givingSlideRef.current.offsetHeight : 0
-      ]);
-    };
-    measure();
-    const t = setTimeout(measure, 80); // catch any late layout shift (text wrap, font load)
-    window.addEventListener('resize', measure);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener('resize', measure);
-    };
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSlide((prev) => (prev === 0 ? 1 : 0));
-    },  3000); // wait a full minute between slide changes
-
-    return () => clearInterval(interval);
-  }, []);
-
   const allProducts = [...FIXED_PRODUCTS, ...dbProducts];
-
-  const containerHeight = slideHeights[slide] || undefined;
 
   return (
     <div>
@@ -174,7 +141,7 @@ export default function ProductsPage() {
 
     position:absolute;
 
-    left:34%;
+    left:36%;
 
     top:50%;
 
@@ -222,6 +189,7 @@ export default function ProductsPage() {
     .pp-revenue-banner{
       flex-direction:column;
       min-height:auto;
+      height:auto;
     }
 
     .pp-revenue-img{
@@ -229,10 +197,15 @@ export default function ProductsPage() {
       height:260px;
     }
 
+    .pp-revenue-img img{
+      height:260px;
+    }
+
     .pp-revenue-text{
       padding:80px 24px 35px;
       text-align:center;
       align-items:center;
+      height:auto;
     }
 
     .pp-revenue-text p{
@@ -258,74 +231,42 @@ export default function ProductsPage() {
   }
 `}</style>
 
-     <div
-  style={{
-    overflow: "hidden",
-    height: "30vh",
-    minHeight: "250px",
-    maxHeight: "320px",
-    width: "100%",
-    position: "relative",
-    marginTop: "-30px",
-    transition: "height 1.2s ease-in-out"
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "row",
-      width: "200%",
-      transform: `translateX(-${slide * 50}%)`,
-      transition: "transform 1.2s ease-in-out"
-    }}
-  >
+      <section
+        style={{
+          maxWidth: 1100,
+          margin: '0 auto 40px',
+          padding: '0 20px',
+          marginTop: '-40px'
+        }}
+      >
+        <div className="pp-revenue-banner">
 
-    {/* Products Hero */}
+          <div className="pp-revenue-img">
+            <img src="/images/product5.png" alt="" />
+          </div>
 
-    {/* Giving Back */}
+          <div className="pp-revenue-text">
+            <p className="pp-revenue-label">
+              ✦ Giving Back
+            </p>
 
-    <section
-      ref={givingSlideRef}
-      style={{
-        maxWidth: 1100,
-        margin: '0 auto 40px'
-        padding: "0 20px",
-        width: "50%",
-        flex: "0 0 50%",
-        boxSizing: "border-box"
-      }}
-    >
-      <div className="pp-revenue-banner">
+            <h3>
+              Creating with Purpose
+            </h3>
 
-        <div className="pp-revenue-img">
-          <img src="/images/product5.png" alt="" />
+            <p>
+              20% of our revenue is dedicated to supporting Christian missions —
+              helping spread the Gospel and serve communities in need.
+            </p>
+          </div>
+
+          <div className="pp-revenue-circle">
+            <span>20%</span>
+            <small>To Missions</small>
+          </div>
+
         </div>
-
-        <div className="pp-revenue-text">
-          <p className="pp-revenue-label">
-            ✦ Giving Back
-          </p>
-
-          <h3>
-            Creating with Purpose
-          </h3>
-
-          <p>
-            20% of our revenue is dedicated to supporting Christian missions —
-            helping spread the Gospel and serve communities in need.
-          </p>
-        </div>
-
-        <div className="pp-revenue-circle">
-          <span>20%</span>
-          <small>To Missions</small>
-        </div>
-
-      </div>
-    </section>
-
-  </div>
-</div>
+      </section>
 
       <section style={{ maxWidth: 1100, margin: '60px auto', padding: '0 20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 32 }}>
