@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import API from '../utils/api';
@@ -12,6 +12,7 @@ const inp = {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', location: '',
@@ -21,11 +22,13 @@ export default function RegisterPage() {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [hasTriedAutoDetect, setHasTriedAutoDetect] = useState(false);
 
+  const redirectTo = location.state?.from || '/products';
+
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
   const detectLocation = () => {
-    if (hasTriedAutoDetect) return; // only auto-detect once
-    if (form.location.trim()) return; // don't override if already typed
+    if (hasTriedAutoDetect) return;
+    if (form.location.trim()) return;
     if (!navigator.geolocation) return;
 
     setHasTriedAutoDetect(true);
@@ -55,14 +58,10 @@ export default function RegisterPage() {
             set('location', detected);
             toast.success('Location detected! Edit if needed.');
           }
-        } catch (err) {
-          // silently fail - customer can type manually
-        }
+        } catch (err) {}
         setDetectingLocation(false);
       },
-      () => {
-        setDetectingLocation(false);
-      },
+      () => { setDetectingLocation(false); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -76,7 +75,7 @@ export default function RegisterPage() {
       const { data } = await API.post('/auth/register', form);
       login(data.token, data.user);
       toast.success('Welcome to Potters Productions! 🙏');
-      navigate('/products');
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed.');
     }
@@ -104,16 +103,10 @@ export default function RegisterPage() {
           ))}
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Location / City *</label>
-            <input
-              style={inp}
-              type="text"
-              placeholder={detectingLocation ? 'Detecting your location...' : 'City, State'}
-              value={form.location}
-              onFocus={detectLocation}
-              onChange={e => set('location', e.target.value)}
-              required
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: 12, color: '#1a56db', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Location / City *</label>
+            </div>
+            <input style={inp} type="text" placeholder={detectingLocation ? 'Detecting your location...' : 'City, State'} value={form.location} onFocus={detectLocation} onChange={e => set('location', e.target.value)} required />
           </div>
 
           <div style={{ marginBottom: 16 }}>
@@ -149,7 +142,7 @@ export default function RegisterPage() {
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#6b7280' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#1a56db', fontWeight: 700 }}>Login here</Link>
+          <Link to="/login" state={{ from: redirectTo }} style={{ color: '#1a56db', fontWeight: 700 }}>Login here</Link>
         </p>
       </div>
     </div>
