@@ -101,7 +101,7 @@ export default function ProductsPage() {
 
   .pp-revenue-banner{
     display:flex;
-    align-items:stretch;
+    align-items:center;
     position:relative;
     overflow:hidden;
 
@@ -111,10 +111,8 @@ export default function ProductsPage() {
 
     box-shadow:0 12px 40px rgba(14,58,140,.25);
 
-    min-height:260px;
-    height:30vh;
-    max-height:320px;
-  }
+    height:300px;
+}
 
   /* Left image */
 
@@ -126,23 +124,25 @@ export default function ProductsPage() {
 
   .pp-revenue-img img{
     width:100%;
-    height:100%;
+    height:300px;
     object-fit:cover;
-    display:block;
-  }
+}
 
   /* Right content */
 
   .pp-revenue-text{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-start;
 
-    padding:45px 50px 45px 120px;
+  padding:30px 50px 30px 160px;
 
-    color:#fff;
-  }
+  color:#fff;
+  height:100%;
+  box-sizing:border-box;
+}
 
   .pp-revenue-label{
     font-size:12px;
@@ -154,17 +154,19 @@ export default function ProductsPage() {
   }
 
   .pp-revenue-text h3{
-    font-family:'Playfair Display',serif;
-    font-size:34px;
-    margin:0 0 16px;
-  }
+  font-family:'Playfair Display',serif;
+  font-size:30px;
+  margin:8px 0 16px;
+  line-height:1.2;
+}
 
   .pp-revenue-text p{
-    font-size:16px;
-    line-height:1.8;
-    color:#dbeafe;
-    max-width:520px;
-  }
+  font-size:15px;
+  line-height:1.7;
+  color:#dbeafe;
+  max-width:480px;
+  margin:0;
+}
 
   /* 20% Circle */
 
@@ -172,7 +174,7 @@ export default function ProductsPage() {
 
     position:absolute;
 
-    left:36%;
+    left:34%;
 
     top:50%;
 
